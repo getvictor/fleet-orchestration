@@ -1,0 +1,102 @@
+---
+- name: Install and configure Apache web server
+  hosts: localhost
+  connection: local
+  become: yes
+  
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+        cache_valid_time: 3600
+      
+    - name: Install Apache2
+      apt:
+        name: apache2
+        state: present
+        
+    - name: Ensure Apache2 is started and enabled
+      service:
+        name: apache2
+        state: started
+        enabled: yes
+      ignore_errors: yes  # In case enable fails in container
+      
+    - name: Start Apache2 directly if service module didn't work
+      command: service apache2 start
+      args:
+        creates: /var/run/apache2/apache2.pid
+        
+    - name: Create custom index.html
+      copy:
+        dest: /var/www/html/index.html
+        content: |
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+              <meta charset="UTF-8">
+              <meta name="viewport" content="width=device-width, initial-scale=1.0">
+              <title>Apache Test Page</title>
+              <style>
+                  body {
+                      font-family: Arial, sans-serif;
+                      display: flex;
+                      justify-content: center;
+                      align-items: center;
+                      height: 100vh;
+                      margin: 0;
+                      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                  }
+                  .container {
+                      text-align: center;
+                      background: white;
+                      padding: 50px;
+                      border-radius: 10px;
+                      box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                  }
+                  h1 {
+                      color: #333;
+                      font-size: 3em;
+                      margin: 0;
+                  }
+                  p {
+                      color: #666;
+                      font-size: 1.2em;
+                      margin-top: 20px;
+                  }
+                  .success {
+                      color: #4CAF50;
+                      font-weight: bold;
+                  }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <h1>It works!</h1>
+                  <p class="success">Apache has been successfully installed via Ansible</p>
+                  <p>Server is running on {{ ansible_hostname }}</p>
+                  <p>{{ ansible_distribution }} {{ ansible_distribution_version }}</p>
+              </div>
+          </body>
+          </html>
+        owner: www-data
+        group: www-data
+        mode: '0644'
+        
+    - name: Restart Apache2 to apply changes
+      command: service apache2 restart
+      changed_when: true
+        
+    - name: Check if Apache is listening on port 80
+      wait_for:
+        port: 80
+        host: 127.0.0.1
+        delay: 5
+        timeout: 30
+        
+    - name: Display success message
+      debug:
+        msg: 
+          - "Apache has been successfully installed and configured!"
+          - "You can access the web server at http://localhost/"
+          - "or http://{{ ansible_default_ipv4.address | default('your-server-ip') }}/"
