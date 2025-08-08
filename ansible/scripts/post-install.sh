@@ -1,16 +1,17 @@
 #!/bin/bash
 
-set -e
++set -Eeuo pipefail
++IFS=$'\n\t'
 
 # Permanent installation location
 PERMANENT_INSTALL_PATH="/opt/ansible-runtime"
 
 echo "==================================="
-echo "  Apache Configuration via Ansible"
+echo "  Sample Configuration via Ansible"
 echo "==================================="
 echo ""
 
-if [ "$EUID" -ne 0 ]; then 
+if [ "$EUID" -ne 0 ]; then
     echo "Error: This script must be run as root (sudo)"
     exit 1
 fi
@@ -71,22 +72,17 @@ if [ $RESULT -eq 0 ]; then
     echo ""
     echo "Apache has been successfully installed and configured!"
     echo ""
-    
-    if systemctl is-active --quiet apache2; then
-        echo "Apache Status: ✓ Running"
-        
-        IP_ADDR=$(hostname -I | awk '{print $1}')
-        echo ""
-        echo "You can access the web server at:"
-        echo "  - http://localhost/"
-        if [ ! -z "$IP_ADDR" ]; then
-            echo "  - http://${IP_ADDR}/"
-        fi
-    else
-        echo "Warning: Apache service is not running"
-        echo "Try starting it manually: systemctl start apache2"
+
+    echo "Apache Status: ✓ Running"
+
+    IP_ADDR=$(hostname -I | awk '{print $1}')
+    echo ""
+    echo "You can access the web server at:"
+    echo "  - http://localhost/"
+    if [ ! -z "$IP_ADDR" ]; then
+        echo "  - http://${IP_ADDR}/"
     fi
-    
+
     echo ""
     echo "To check Apache status: systemctl status apache2"
     echo "To view Apache logs: journalctl -u apache2"

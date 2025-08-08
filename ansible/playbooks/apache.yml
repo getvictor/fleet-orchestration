@@ -3,30 +3,36 @@
   hosts: localhost
   connection: local
   become: yes
-  
+
   tasks:
     - name: Update apt cache
       apt:
         update_cache: yes
         cache_valid_time: 3600
-      
+
     - name: Install Apache2
       apt:
         name: apache2
         state: present
-        
-    - name: Ensure Apache2 is started and enabled
+
+    - name: Check if systemd is available
+      stat:
+        path: /run/systemd/system
+      register: systemd_check
+
+    - name: Start and enable Apache2 with systemd
       service:
         name: apache2
         state: started
         enabled: yes
-      ignore_errors: yes  # In case enable fails in container
-      
-    - name: Start Apache2 directly if service module didn't work
-      command: service apache2 start
+      when: systemd_check.stat.exists
+
+    - name: Start Apache2 without systemd (container environment)
+      command: apache2ctl start
       args:
         creates: /var/run/apache2/apache2.pid
-        
+      when: not systemd_check.stat.exists
+
     - name: Create custom index.html
       copy:
         dest: /var/www/html/index.html
@@ -82,21 +88,39 @@
         owner: www-data
         group: www-data
         mode: '0644'
-        
-    - name: Restart Apache2 to apply changes
-      command: service apache2 restart
+
+    - name: Reload Apache2 configuration with systemd
+      service:
+        name: apache2
+        state: reloaded
+      when: systemd_check.stat.exists
+
+    - name: Reload Apache2 configuration without systemd
+      command: apache2ctl -k graceful
+      when: not systemd_check.stat.exists
       changed_when: true
-        
-    - name: Check if Apache is listening on port 80
+
+    - name: Wait for Apache to be ready
       wait_for:
         port: 80
         host: 127.0.0.1
-        delay: 5
+        delay: 2
         timeout: 30
-        
+        state: started
+
+    - name: Verify Apache is responding
+      uri:
+        url: http://localhost/
+        status_code: 200
+        timeout: 5
+      register: apache_check
+      retries: 3
+      delay: 2
+      until: apache_check.status == 200
+
     - name: Display success message
       debug:
-        msg: 
+        msg:
           - "Apache has been successfully installed and configured!"
           - "You can access the web server at http://localhost/"
           - "or http://{{ ansible_default_ipv4.address | default('your-server-ip') }}/"

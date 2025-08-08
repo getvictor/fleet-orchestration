@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -e
++set -Eeuo pipefail
++IFS=$'\n\t'
 
 # Permanent installation location
 PERMANENT_INSTALL_PATH="/opt/ansible-runtime"
@@ -10,7 +11,7 @@ echo "  Ansible Runtime Uninstaller"
 echo "==================================="
 echo ""
 
-if [ "$EUID" -ne 0 ]; then 
+if [ "$EUID" -ne 0 ]; then
     echo "Error: This script must be run as root (sudo)"
     exit 1
 fi
@@ -44,12 +45,12 @@ if dpkg -l | grep -q apache2; then
     apt-get purge -y apache2 apache2-utils apache2-bin
     apt-get autoremove -y
     echo "✓ Apache2 removed"
-    
+
     if [ -d /var/www/html ]; then
         rm -rf /var/www/html
         echo "✓ Apache web root removed"
     fi
-    
+
     if [ -d /etc/apache2 ]; then
         rm -rf /etc/apache2
         echo "✓ Apache configuration removed"
@@ -91,7 +92,7 @@ fi
 echo "Cleaning up temporary files..."
 rm -rf /tmp/.ansible-*
 rm -rf /root/.ansible
-rm -rf /home/*/.ansible
+find /home -maxdepth 2 -name ".ansible" -type d -exec rm -rf {} + 2>/dev/null || true
 
 echo ""
 echo "==================================="

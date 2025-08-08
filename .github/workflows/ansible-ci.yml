@@ -1,0 +1,135 @@
+name: Ansible CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - '../../ansible'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - '../../ansible'
+      - '.github/workflows/ci.yml'
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: ansible
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        ubuntu-version: ['22.04']
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Display versions
+      run: |
+        echo "Python version:"
+        python --version
+        echo "Ansible version:"
+        ansible --version
+        echo "Docker version:"
+        docker --version
+
+    - name: Make scripts executable
+      run: |
+        cd ansible/
+        chmod +x build.sh
+        chmod +x test-deployment.sh
+
+    - name: Build Ansible package
+      run: |
+        echo "Building Ansible package..."
+        ./build.sh
+
+    - name: Verify build outputs
+      run: |
+        echo "Checking build outputs..."
+        ls -la output/
+        if [ ! -f "output/ansible-runtime.tar.gz" ]; then
+          echo "Error: ansible-runtime.tar.gz not found!"
+          exit 1
+        fi
+        if [ ! -f "output/install.sh" ]; then
+          echo "Error: install.sh not found!"
+          exit 1
+        fi
+        if [ ! -f "output/post-install.sh" ]; then
+          echo "Error: post-install.sh not found!"
+          exit 1
+        fi
+        if [ ! -f "output/uninstall.sh" ]; then
+          echo "Error: uninstall.sh not found!"
+          exit 1
+        fi
+        echo "All build outputs verified successfully"
+
+    - name: Run deployment test with Ubuntu ${{ matrix.ubuntu-version }}
+      run: |
+        echo "Running deployment test with Ubuntu ${{ matrix.ubuntu-version }}..."
+        # Update test script to use the matrix Ubuntu version
+        sed -i "s/IMAGE=\"ubuntu:.*\"/IMAGE=\"ubuntu:${{ matrix.ubuntu-version }}\"/" test-deployment.sh
+        ./test-deployment.sh
+
+    - name: Upload build artifacts
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: ansible-runtime-ubuntu-${{ matrix.ubuntu-version }}
+        path: |
+          ansible/output/ansible-runtime.tar.gz
+          ansible/output/install.sh
+          ansible/output/post-install.sh
+          ansible/output/uninstall.sh
+
+    - name: Upload test logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-logs-ubuntu-${{ matrix.ubuntu-version }}
+        path: /tmp/test-deployment-*.log
+        if-no-files-found: ignore
+
+  validate-playbooks:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+
+    - name: Install Ansible
+      run: |
+        python -m pip install --upgrade pip
+        pip install ansible==9.2.0 ansible-lint yamllint
+
+    - name: Validate playbook syntax
+      run: |
+        echo "Validating Ansible playbook syntax..."
+        ansible-playbook --syntax-check playbooks/apache.yml
+
+    - name: Lint Ansible playbooks
+      run: |
+        echo "Linting Ansible playbooks..."
+        ansible-lint playbooks/ || true
+
+    - name: Validate YAML syntax
+      run: |
+        echo "Validating YAML syntax..."
+        yamllint -d relaxed playbooks/ || true

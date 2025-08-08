@@ -4,15 +4,24 @@ set -e
 
 # Quick test that pre-installs Python to save time
 
-echo "Quick Ansible Deployment Test"
-echo "=============================="
+LOG_FILE="/tmp/quick-test-$(date +%Y%m%d-%H%M%S).log"
+
+# Function to log output to both console and file
+log() {
+    echo "$@" | tee -a "$LOG_FILE"
+}
+
+log "Quick Ansible Deployment Test"
+log "=============================="
+log "Log file: $LOG_FILE"
+log ""
 
 CONTAINER_NAME="ansible-quick-test"
 OUTPUT_DIR="$(pwd)/output"
 
 # Cleanup function
 cleanup() {
-    echo "Cleaning up..."
+    log "Cleaning up..."
     docker stop ${CONTAINER_NAME} 2>/dev/null || true
     docker rm ${CONTAINER_NAME} 2>/dev/null || true
 }
@@ -22,52 +31,53 @@ trap cleanup EXIT
 # Remove any existing container
 cleanup
 
-echo "1. Starting Ubuntu container..."
+log "1. Starting Ubuntu container..."
 docker run -d \
     --name ${CONTAINER_NAME} \
     -p 9999:80 \
     ubuntu:22.04 \
-    /bin/bash -c "tail -f /dev/null"
+    /bin/bash -c "tail -f /dev/null" 2>&1 | tee -a "$LOG_FILE"
 
-echo "   Installing Python and wget in container..."
-docker exec ${CONTAINER_NAME} bash -c "apt-get update && apt-get install -y python3 python3-pip python3-venv wget"
-echo "   Dependencies installed successfully"
+log "   Installing Python and wget in container..."
+docker exec ${CONTAINER_NAME} bash -c "apt-get update && apt-get install -y python3 python3-pip python3-venv wget" 2>&1 | tee -a "$LOG_FILE"
+log "   Dependencies installed successfully"
 
-echo "2. Copying files..."
-docker exec ${CONTAINER_NAME} mkdir -p /tmp/test
-docker cp ${OUTPUT_DIR}/ansible-runtime.tar.gz ${CONTAINER_NAME}:/tmp/test/
-docker cp ${OUTPUT_DIR}/install.sh ${CONTAINER_NAME}:/tmp/test/
-docker cp ${OUTPUT_DIR}/post-install.sh ${CONTAINER_NAME}:/tmp/test/
-docker cp ${OUTPUT_DIR}/uninstall.sh ${CONTAINER_NAME}:/tmp/test/
+log "2. Copying files..."
+docker exec ${CONTAINER_NAME} mkdir -p /tmp/test 2>&1 | tee -a "$LOG_FILE"
+docker cp ${OUTPUT_DIR}/ansible-runtime.tar.gz ${CONTAINER_NAME}:/tmp/test/ 2>&1 | tee -a "$LOG_FILE"
+docker cp ${OUTPUT_DIR}/install.sh ${CONTAINER_NAME}:/tmp/test/ 2>&1 | tee -a "$LOG_FILE"
+docker cp ${OUTPUT_DIR}/post-install.sh ${CONTAINER_NAME}:/tmp/test/ 2>&1 | tee -a "$LOG_FILE"
+docker cp ${OUTPUT_DIR}/uninstall.sh ${CONTAINER_NAME}:/tmp/test/ 2>&1 | tee -a "$LOG_FILE"
 
-echo "3. Extracting archive..."
-docker exec ${CONTAINER_NAME} bash -c "cd /tmp/test && tar -xzf ansible-runtime.tar.gz"
+log "3. Extracting archive..."
+docker exec ${CONTAINER_NAME} bash -c "cd /tmp/test && tar -xzf ansible-runtime.tar.gz" 2>&1 | tee -a "$LOG_FILE"
 
-echo "4. Running install.sh..."
-docker exec -e INSTALL_PATH=/tmp/test ${CONTAINER_NAME} bash -c "cd /tmp/test && ./install.sh"
+log "4. Running install.sh..."
+docker exec -e INSTALL_PATH=/tmp/test ${CONTAINER_NAME} bash -c "cd /tmp/test && ./install.sh" 2>&1 | tee -a "$LOG_FILE"
 
-echo "5. Testing ansible command..."
-docker exec ${CONTAINER_NAME} ansible --version
+log "5. Testing ansible command..."
+docker exec ${CONTAINER_NAME} ansible --version 2>&1 | tee -a "$LOG_FILE"
 
-echo "6. Running post-install.sh (Apache)..."
-docker exec ${CONTAINER_NAME} bash -c "cd /tmp/test && ./post-install.sh"
+log "6. Running post-install.sh (Apache)..."
+docker exec ${CONTAINER_NAME} bash -c "cd /tmp/test && ./post-install.sh" 2>&1 | tee -a "$LOG_FILE"
 
-echo "7. Testing Apache (should be already running from Ansible)..."
+log "7. Testing Apache (should be already running from Ansible)..."
 sleep 2
-docker exec ${CONTAINER_NAME} bash -c "wget -q -O - http://localhost/ 2>/dev/null | grep 'It works!' && echo '   ✓ Apache is working!' || echo '   ✗ Apache test failed'"
+docker exec ${CONTAINER_NAME} bash -c "wget -q -O - http://localhost/ 2>/dev/null | grep 'It works!' && echo '   ✓ Apache is working!' || echo '   ✗ Apache test failed'" 2>&1 | tee -a "$LOG_FILE"
 
-echo "8. Cleaning temp directory..."
-docker exec ${CONTAINER_NAME} rm -rf /tmp/test
+log "8. Cleaning temp directory..."
+docker exec ${CONTAINER_NAME} rm -rf /tmp/test 2>&1 | tee -a "$LOG_FILE"
 
-echo "9. Verifying Ansible still works..."
-docker exec ${CONTAINER_NAME} ansible --version >/dev/null && echo "✓ Ansible still works" || echo "✗ Ansible broken"
+log "9. Verifying Ansible still works..."
+docker exec ${CONTAINER_NAME} ansible --version >/dev/null 2>&1 && log "✓ Ansible still works" || log "✗ Ansible broken"
 
-echo "10. Running uninstall.sh..."
-docker cp ${OUTPUT_DIR}/uninstall.sh ${CONTAINER_NAME}:/tmp/
-docker exec ${CONTAINER_NAME} bash -c "cd /tmp && ./uninstall.sh"
+log "10. Running uninstall.sh..."
+docker cp ${OUTPUT_DIR}/uninstall.sh ${CONTAINER_NAME}:/tmp/ 2>&1 | tee -a "$LOG_FILE"
+docker exec ${CONTAINER_NAME} bash -c "cd /tmp && ./uninstall.sh" 2>&1 | tee -a "$LOG_FILE"
 
-echo "11. Verifying uninstall..."
-docker exec ${CONTAINER_NAME} which ansible 2>/dev/null && echo "✗ Ansible still present" || echo "✓ Ansible removed"
+log "11. Verifying uninstall..."
+docker exec ${CONTAINER_NAME} which ansible 2>/dev/null && log "✗ Ansible still present" || log "✓ Ansible removed"
 
-echo ""
-echo "Quick test complete!"
+log ""
+log "Quick test complete!"
+log "Full log saved to: $LOG_FILE"
