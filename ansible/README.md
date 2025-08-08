@@ -88,14 +88,14 @@ deprecation_warnings = False     # Suppress deprecation warnings
 **Prerequisites:**
 - Ubuntu 20.04 or 22.04
 - Root/sudo privileges
-- INSTALL_PATH environment variable (temporary extraction location)
+- INSTALLER_PATH environment variable (temporary extraction location)
 
 **What it does:**
 
 1. **Validates environment**
    - Checks for root privileges
-   - Verifies INSTALL_PATH is set
-   - Confirms ansible-runtime directory exists in INSTALL_PATH
+   - Verifies INSTALLER_PATH is set
+   - Confirms ansible-runtime directory exists in INSTALLER_PATH
 
 2. **Installs system dependencies** (if missing):
    ```bash
@@ -103,7 +103,7 @@ deprecation_warnings = False     # Suppress deprecation warnings
    ```
 
 3. **Copies files to permanent location**
-   - From: `$INSTALL_PATH/ansible-runtime` (temporary)
+   - From: `$INSTALLER_PATH/ansible-runtime` (temporary)
    - To: `/opt/ansible-runtime` (permanent)
 
 4. **Creates Python virtual environment**
@@ -128,7 +128,7 @@ deprecation_warnings = False     # Suppress deprecation warnings
    - Creates `/etc/profile.d/ansible.sh` with ANSIBLE_CONFIG export
    - Makes Ansible available system-wide
 
-**Important:** The INSTALL_PATH is temporary and can be deleted after installation. The permanent installation is always at `/opt/ansible-runtime`.
+**Important:** The INSTALLER_PATH is temporary and can be deleted after installation. The permanent installation is always at `/opt/ansible-runtime`.
 
 ### 3. post-install.sh - Apache Configuration
 
@@ -258,10 +258,10 @@ The test script:
 
 ## Troubleshooting
 
-### "INSTALL_PATH not set" error
+### "INSTALLER_PATH not set" error
 Set the environment variable to your extraction directory:
 ```bash
-export INSTALL_PATH=/tmp/ansible-extract
+export INSTALLER_PATH=/tmp/ansible-extract
 ```
 
 ### "pip externally managed" warnings

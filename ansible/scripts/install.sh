@@ -1,7 +1,7 @@
 #!/bin/bash
 
-+set -Eeuo pipefail
-+IFS=$'\n\t'
+set -Eeuo pipefail
+IFS=$'\n\t'
 
 # Permanent installation location
 PERMANENT_INSTALL_PATH="/opt/ansible-runtime"
@@ -16,22 +16,22 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-if [ -z "$INSTALL_PATH" ]; then
-    echo "Error: INSTALL_PATH environment variable is not set"
-    echo "Usage: INSTALL_PATH=/path/to/temp/extract sudo ./install.sh"
-    echo "Note: INSTALL_PATH should be the temporary directory where you extracted the tar.gz"
+if [ -z "$INSTALLER_PATH" ]; then
+    echo "Error: INSTALLER_PATH environment variable is not set"
+    echo "Usage: INSTALLER_PATH=/path/to/temp/extract sudo ./install.sh"
+    echo "Note: INSTALLER_PATH should be the temporary directory where you extracted the tar.gz"
     exit 1
 fi
 
-if [ ! -d "${INSTALL_PATH}" ]; then
-    echo "Error: ${INSTALL_PATH} does not exist"
+if [ ! -d "${INSTALLER_PATH}" ]; then
+    echo "Error: ${INSTALLER_PATH} does not exist"
     exit 1
 fi
 
-if [ ! -d "${INSTALL_PATH}/ansible-runtime" ]; then
-    echo "Error: ansible-runtime directory not found at ${INSTALL_PATH}/ansible-runtime"
-    echo "Please extract ansible-runtime.tar.gz to ${INSTALL_PATH} first:"
-    echo "  tar -xzf ansible-runtime.tar.gz -C ${INSTALL_PATH}"
+if [ ! -d "${INSTALLER_PATH}/ansible-runtime" ]; then
+    echo "Error: ansible-runtime directory not found at ${INSTALLER_PATH}/ansible-runtime"
+    echo "Please extract ansible-runtime.tar.gz to ${INSTALLER_PATH} first:"
+    echo "  tar -xzf ansible-runtime.tar.gz -C ${INSTALLER_PATH}"
     exit 1
 fi
 
@@ -71,7 +71,7 @@ fi
 # Create permanent directory and copy files
 echo "Copying files to permanent location..."
 mkdir -p "$(dirname ${PERMANENT_INSTALL_PATH})"
-cp -r "${INSTALL_PATH}/ansible-runtime" "${PERMANENT_INSTALL_PATH}"
+cp -r "${INSTALLER_PATH}/ansible-runtime" "${PERMANENT_INSTALL_PATH}"
 
 echo "Setting up permissions..."
 chmod -R 755 "${PERMANENT_INSTALL_PATH}"
@@ -102,7 +102,7 @@ echo ""
 echo "Ansible has been installed to: ${PERMANENT_INSTALL_PATH}"
 echo "Configuration file: ${PERMANENT_INSTALL_PATH}/ansible/etc/ansible.cfg"
 echo ""
-echo "The temporary directory ${INSTALL_PATH} can now be safely deleted."
+echo "The temporary directory ${INSTALLER_PATH} can now be safely deleted."
 echo ""
 echo "You can now run:"
 echo "  - ansible --version"

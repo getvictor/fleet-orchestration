@@ -1,7 +1,7 @@
 #!/bin/bash
 
-+set -Eeuo pipefail
-+IFS=$'\n\t'
+set -Eeuo pipefail
+IFS=$'\n\t'
 
 # Permanent installation location
 PERMANENT_INSTALL_PATH="/opt/ansible-runtime"

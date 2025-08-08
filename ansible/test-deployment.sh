@@ -11,7 +11,7 @@ NC='\033[0m' # No Color
 # Test configuration
 CONTAINER_NAME="ansible-test-$(date +%s)"
 IMAGE="ubuntu:22.04"
-TEST_INSTALL_PATH="/tmp/ansible-install"
+TEST_INSTALLER_PATH="/tmp/ansible-install"
 OUTPUT_DIR="$(pwd)/output"
 LOG_FILE="/tmp/test-deployment-$(date +%Y%m%d-%H%M%S).log"
 
@@ -80,22 +80,22 @@ log "${GREEN}✓ Container ${CONTAINER_NAME} is running${NC}"
 
 # Copy files to container
 log "\n${GREEN}Step 2: Copying files to container${NC}"
-docker exec ${CONTAINER_NAME} mkdir -p ${TEST_INSTALL_PATH} 2>&1 | tee -a "$LOG_FILE"
-docker cp ${OUTPUT_DIR}/ansible-runtime.tar.gz ${CONTAINER_NAME}:${TEST_INSTALL_PATH}/ 2>&1 | tee -a "$LOG_FILE"
-docker cp ${OUTPUT_DIR}/install.sh ${CONTAINER_NAME}:${TEST_INSTALL_PATH}/ 2>&1 | tee -a "$LOG_FILE"
-docker cp ${OUTPUT_DIR}/post-install.sh ${CONTAINER_NAME}:${TEST_INSTALL_PATH}/ 2>&1 | tee -a "$LOG_FILE"
-docker cp ${OUTPUT_DIR}/uninstall.sh ${CONTAINER_NAME}:${TEST_INSTALL_PATH}/ 2>&1 | tee -a "$LOG_FILE"
+docker exec ${CONTAINER_NAME} mkdir -p ${TEST_INSTALLER_PATH} 2>&1 | tee -a "$LOG_FILE"
+docker cp ${OUTPUT_DIR}/ansible-runtime.tar.gz ${CONTAINER_NAME}:${TEST_INSTALLER_PATH}/ 2>&1 | tee -a "$LOG_FILE"
+docker cp ${OUTPUT_DIR}/install.sh ${CONTAINER_NAME}:${TEST_INSTALLER_PATH}/ 2>&1 | tee -a "$LOG_FILE"
+docker cp ${OUTPUT_DIR}/post-install.sh ${CONTAINER_NAME}:${TEST_INSTALLER_PATH}/ 2>&1 | tee -a "$LOG_FILE"
+docker cp ${OUTPUT_DIR}/uninstall.sh ${CONTAINER_NAME}:${TEST_INSTALLER_PATH}/ 2>&1 | tee -a "$LOG_FILE"
 
 log "${GREEN}✓ Files copied successfully${NC}"
 
 # Extract tar.gz
 log "\n${GREEN}Step 3: Extracting ansible-runtime.tar.gz${NC}"
-docker exec ${CONTAINER_NAME} bash -c "cd ${TEST_INSTALL_PATH} && tar -xzf ansible-runtime.tar.gz" 2>&1 | tee -a "$LOG_FILE"
+docker exec ${CONTAINER_NAME} bash -c "cd ${TEST_INSTALLER_PATH} && tar -xzf ansible-runtime.tar.gz" 2>&1 | tee -a "$LOG_FILE"
 log "${GREEN}✓ Extraction complete${NC}"
 
 # Run install.sh
 log "\n${GREEN}Step 4: Running install.sh${NC}"
-docker exec -e INSTALL_PATH=${TEST_INSTALL_PATH} ${CONTAINER_NAME} bash -c "cd ${TEST_INSTALL_PATH} && ./install.sh" 2>&1 | tee -a "$LOG_FILE"
+docker exec -e INSTALLER_PATH=${TEST_INSTALLER_PATH} ${CONTAINER_NAME} bash -c "cd ${TEST_INSTALLER_PATH} && ./install.sh" 2>&1 | tee -a "$LOG_FILE"
 
 # Verify Ansible installation
 log "\n${GREEN}Step 5: Verifying Ansible installation${NC}"
@@ -104,7 +104,7 @@ log "${GREEN}✓ Ansible installed successfully${NC}"
 
 # Run post-install.sh to install Apache
 log "\n${GREEN}Step 6: Running post-install.sh (Apache installation)${NC}"
-docker exec ${CONTAINER_NAME} bash -c "cd ${TEST_INSTALL_PATH} && ./post-install.sh" 2>&1 | tee -a "$LOG_FILE"
+docker exec ${CONTAINER_NAME} bash -c "cd ${TEST_INSTALLER_PATH} && ./post-install.sh" 2>&1 | tee -a "$LOG_FILE"
 
 # Verify Apache is running (use service command which works without systemd)
 log "\n${GREEN}Step 7: Verifying Apache installation${NC}"
@@ -132,7 +132,7 @@ fi
 
 # Clean up temporary directory
 log "\n${GREEN}Step 9: Cleaning up temporary installation directory${NC}"
-docker exec ${CONTAINER_NAME} rm -rf ${TEST_INSTALL_PATH} 2>&1 | tee -a "$LOG_FILE"
+docker exec ${CONTAINER_NAME} rm -rf ${TEST_INSTALLER_PATH} 2>&1 | tee -a "$LOG_FILE"
 log "${GREEN}✓ Temporary directory removed${NC}"
 
 # Verify Ansible still works after temp cleanup
