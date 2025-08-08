@@ -2,39 +2,39 @@
 - name: Install and configure Apache web server
   hosts: localhost
   connection: local
-  become: yes
+  become: true
 
   tasks:
     - name: Update apt cache
-      apt:
-        update_cache: yes
+      ansible.builtin.apt:
+        update_cache: true
         cache_valid_time: 3600
 
     - name: Install Apache2
-      apt:
+      ansible.builtin.apt:
         name: apache2
         state: present
 
     - name: Check if systemd is available
-      stat:
+      ansible.builtin.stat:
         path: /run/systemd/system
       register: systemd_check
 
     - name: Start and enable Apache2 with systemd
-      service:
+      ansible.builtin.service:
         name: apache2
         state: started
-        enabled: yes
+        enabled: true
       when: systemd_check.stat.exists
 
     - name: Start Apache2 without systemd (container environment)
-      command: apache2ctl start
+      ansible.builtin.command: apache2ctl start
       args:
         creates: /var/run/apache2/apache2.pid
       when: not systemd_check.stat.exists
 
     - name: Create custom index.html
-      copy:
+      ansible.builtin.copy:
         dest: /var/www/html/index.html
         content: |
           <!DOCTYPE html>
@@ -90,18 +90,18 @@
         mode: '0644'
 
     - name: Reload Apache2 configuration with systemd
-      service:
+      ansible.builtin.service:
         name: apache2
         state: reloaded
       when: systemd_check.stat.exists
 
     - name: Reload Apache2 configuration without systemd
-      command: apache2ctl -k graceful
+      ansible.builtin.command: apache2ctl -k graceful
       when: not systemd_check.stat.exists
       changed_when: true
 
     - name: Wait for Apache to be ready
-      wait_for:
+      ansible.builtin.wait_for:
         port: 80
         host: 127.0.0.1
         delay: 2
@@ -109,7 +109,7 @@
         state: started
 
     - name: Verify Apache is responding
-      uri:
+      ansible.builtin.uri:
         url: http://localhost/
         status_code: 200
         timeout: 5
@@ -119,7 +119,7 @@
       until: apache_check.status == 200
 
     - name: Display success message
-      debug:
+      ansible.builtin.debug:
         msg:
           - "Apache has been successfully installed and configured!"
           - "You can access the web server at http://localhost/"
