@@ -45,7 +45,6 @@ jobs:
 
     - name: Make scripts executable
       run: |
-        cd ansible/
         chmod +x build.sh
         chmod +x test-deployment.sh
 
