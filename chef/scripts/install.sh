@@ -110,10 +110,23 @@ if [ -d "${PERMANENT_INSTALL_PATH}/chef/embedded/lib" ]; then
             apt-get install -y ${MISSING_TOOLS} >/dev/null 2>&1
         fi
         
+        # Create necessary symlinks for libruby
+        echo "Creating library symlinks..."
+        cd "${PERMANENT_INSTALL_PATH}/chef/embedded/lib"
+        # Find the actual libruby file and create symlinks
+        if ls libruby.so.*.*.* >/dev/null 2>&1; then
+            RUBY_LIB=$(ls libruby.so.*.*.* | head -n1)
+            RUBY_VER=$(echo $RUBY_LIB | sed 's/libruby.so.\([0-9]*\.[0-9]*\).*/\1/')
+            ln -sf "$RUBY_LIB" "libruby.so.$RUBY_VER" 2>/dev/null || true
+            ln -sf "$RUBY_LIB" "libruby.so" 2>/dev/null || true
+            echo "Created symlinks for $RUBY_LIB"
+        fi
+        cd - >/dev/null
+        
         # Fix RPATH in Ruby binary to look for libraries in embedded/lib
         if command -v patchelf &> /dev/null; then
             echo "Fixing Ruby binary RPATH..."
-            patchelf --set-rpath "${PERMANENT_INSTALL_PATH}/chef/embedded/lib" \
+            patchelf --set-rpath "${PERMANENT_INSTALL_PATH}/chef/embedded/lib:${PERMANENT_INSTALL_PATH}/chef/embedded/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu" \
                      "${PERMANENT_INSTALL_PATH}/chef/embedded/bin/ruby" 2>/dev/null || true
             
             # Also fix any other binaries that might need it
@@ -198,6 +211,10 @@ else
     ls -la "${PERMANENT_INSTALL_PATH}/chef/embedded/bin/ruby" 2>/dev/null || echo "Ruby not found"
     echo "Debug: Checking for libruby in embedded/lib..."
     ls -la "${PERMANENT_INSTALL_PATH}/chef/embedded/lib"/libruby* 2>/dev/null || echo "libruby not found in embedded/lib"
+    echo "Debug: Checking Ruby RPATH..."
+    if command -v patchelf &> /dev/null; then
+        patchelf --print-rpath "${PERMANENT_INSTALL_PATH}/chef/embedded/bin/ruby" 2>/dev/null || echo "Could not read RPATH"
+    fi
     echo "Debug: Checking wrapper script..."
     ls -la "${PERMANENT_INSTALL_PATH}/chef/bin-wrappers/chef-client" 2>/dev/null || echo "Wrapper not found"
     echo "Debug: Testing Ruby directly..."
