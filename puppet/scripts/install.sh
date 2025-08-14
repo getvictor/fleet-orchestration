@@ -70,26 +70,19 @@ if ! command -v gpg &> /dev/null; then
 fi
 
 echo ""
-echo "Setting up Puppet repository..."
-
-# Download and install Puppet repository
-PUPPET_REPO_DEB="puppet-release-noble.deb"
-PUPPET_REPO_URL="https://apt.puppet.com/${PUPPET_REPO_DEB}"
-
-echo "Downloading Puppet repository package from ${PUPPET_REPO_URL}..."
-wget -q -O "/tmp/${PUPPET_REPO_DEB}" "${PUPPET_REPO_URL}"
-
-echo "Installing Puppet repository..."
-dpkg -i "/tmp/${PUPPET_REPO_DEB}"
-rm -f "/tmp/${PUPPET_REPO_DEB}"
-
-echo "Updating package lists..."
+echo "Installing Ruby (required for Puppet)..."
+# Install Ruby and dependencies that Puppet needs
 apt-get update
+apt-get install -y ruby ruby-full rubygems-integration || {
+    echo "Error: Failed to install Ruby"
+    exit 1
+}
 
-echo "Installing Puppet agent..."
-apt-get install -y puppet-agent
+echo "✓ Ruby installed"
 
-echo "✓ Puppet agent installed"
+# Install any Ruby gems that Puppet might need
+echo "Installing required Ruby gems..."
+gem install --no-document facter hiera puppet || true
 
 # Copy Puppet runtime files to permanent location
 echo ""
@@ -117,26 +110,27 @@ exec /opt/puppet-runtime/puppet-apply-wrapper.sh "$@"
 EOF
 chmod +x /usr/local/bin/puppet-apply
 
+# Create symlinks for our standalone puppet
+echo "Creating puppet command symlinks..."
+if [ -f "${PERMANENT_INSTALL_PATH}/bin/puppet" ]; then
+    ln -sf "${PERMANENT_INSTALL_PATH}/bin/puppet" /usr/local/bin/puppet
+    echo "✓ Created symlink for puppet"
+fi
+
 # Set up Puppet paths
 echo "Setting up Puppet environment..."
 if [ ! -f /etc/profile.d/puppet.sh ]; then
     cat > /etc/profile.d/puppet.sh << 'EOF'
 # Puppet environment setup
-export PATH="/opt/puppetlabs/puppet/bin:/usr/bin:$PATH"
+export PATH="/opt/puppet-runtime/bin:/usr/local/bin:$PATH"
 export PUPPET_BASE="/opt/puppet-runtime"
 EOF
     chmod +x /etc/profile.d/puppet.sh
 fi
 
-# Source the environment - check which path Puppet is installed in
-if [ -f "/opt/puppetlabs/puppet/bin/puppet" ]; then
-    export PATH="/opt/puppetlabs/puppet/bin:$PATH"
-    PUPPET_BIN="/opt/puppetlabs/puppet/bin/puppet"
-elif [ -f "/usr/bin/puppet" ]; then
-    PUPPET_BIN="/usr/bin/puppet"
-else
-    PUPPET_BIN="puppet"
-fi
+# Our puppet is in the runtime directory
+PUPPET_BIN="${PERMANENT_INSTALL_PATH}/bin/puppet"
+export PATH="${PERMANENT_INSTALL_PATH}/bin:/usr/local/bin:$PATH"
 
 echo ""
 echo "==================================="
@@ -145,7 +139,13 @@ echo "==================================="
 echo ""
 echo "Puppet has been installed to: ${PERMANENT_INSTALL_PATH}"
 echo "Puppet agent version:"
-$PUPPET_BIN --version || echo "Unable to determine version"
+
+# Show puppet version
+if [ -f "$PUPPET_BIN" ]; then
+    $PUPPET_BIN --version || echo "Unable to determine version"
+else
+    echo "Error: Puppet binary not found at $PUPPET_BIN"
+fi
 echo ""
 echo "The temporary directory ${INSTALLER_PATH} can now be safely deleted."
 echo ""

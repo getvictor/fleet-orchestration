@@ -23,21 +23,19 @@ if [ ! -d "${PERMANENT_INSTALL_PATH}" ]; then
     exit 1
 fi
 
-# Check if Puppet is installed - try multiple locations
-if [ -f "/opt/puppetlabs/puppet/bin/puppet" ]; then
-    PUPPET_BIN="/opt/puppetlabs/puppet/bin/puppet"
-    export PATH="/opt/puppetlabs/puppet/bin:$PATH"
-elif [ -f "/usr/bin/puppet" ]; then
-    PUPPET_BIN="/usr/bin/puppet"
-else
-    echo "Error: Puppet agent not found"
+# Use our bundled puppet from the runtime directory
+PUPPET_BIN="${PERMANENT_INSTALL_PATH}/bin/puppet"
+export PATH="${PERMANENT_INSTALL_PATH}/bin:/usr/local/bin:$PATH"
+
+if [ ! -f "$PUPPET_BIN" ]; then
+    echo "Error: Puppet not found at $PUPPET_BIN"
     echo "Please ensure install.sh completed successfully"
     exit 1
 fi
 
 echo "Checking Puppet installation..."
 echo "Puppet version:"
-puppet --version || echo "Unable to determine version"
+$PUPPET_BIN --version || echo "Unable to determine version"
 echo ""
 
 MANIFEST_PATH="${PERMANENT_INSTALL_PATH}/manifests/site.pp"
@@ -61,7 +59,7 @@ cd "${PERMANENT_INSTALL_PATH}"
 
 # Apply the Puppet manifest
 FACTER_var1=$FLEET_SECRET_VAR1 FACTER_var2=var2_content \
-puppet apply \
+$PUPPET_BIN apply \
     --modulepath="${PERMANENT_INSTALL_PATH}/modules" \
     --config="${PERMANENT_INSTALL_PATH}/config/puppet.conf" \
     "${MANIFEST_PATH}" \
