@@ -49,16 +49,16 @@ bash 'verify_apache_install' do
       groupadd -g 33 www-data 2>/dev/null || echo "Group creation failed"
       useradd -u 33 -g www-data -d /var/www -s /usr/sbin/nologin www-data 2>/dev/null || echo "User creation failed"
     fi
-    
+
     echo "Checking Apache binary:"
     ls -la /usr/sbin/apache2 2>/dev/null || echo "Apache binary not found"
-    
+
     echo "Checking Apache config directory:"
     ls -la /etc/apache2/ 2>/dev/null || echo "Apache config directory not found"
-    
+
     echo "Checking dpkg status of apache2:"
     dpkg -l | grep apache2
-    
+
     echo "Checking for incomplete package installation:"
     dpkg --audit
   EOH
@@ -89,38 +89,38 @@ bash 'fix_apache_config' do
       echo "ERROR: www-data user still missing after creation attempt"
       exit 1
     fi
-    
+
     # Ensure /var/www exists with correct ownership
     if [ ! -d /var/www ]; then
       mkdir -p /var/www/html
       chown -R www-data:www-data /var/www
     fi
-    
+
     # Ensure ServerName is set to avoid warning
     if ! grep -q "^ServerName" /etc/apache2/apache2.conf; then
       echo "ServerName localhost" >> /etc/apache2/apache2.conf
     fi
-    
+
     # Ensure Apache run directory exists
     mkdir -p /var/run/apache2
     chown www-data:www-data /var/run/apache2
-    
+
     # Test Apache configuration
     apache2ctl configtest 2>&1
     if [ $? -ne 0 ]; then
       echo "Apache configuration has errors, checking details..."
-      
+
       # Check for common issues
       echo "Checking Apache modules..."
       ls -la /etc/apache2/mods-enabled/ 2>&1
-      
+
       echo "Checking Apache ports configuration..."
       cat /etc/apache2/ports.conf 2>&1
-      
+
       # Try to fix common issues
       a2enmod mpm_prefork 2>/dev/null || true
       a2enmod authz_core 2>/dev/null || true
-      
+
       # Test again
       apache2ctl configtest 2>&1
     fi
@@ -147,7 +147,9 @@ template "#{node['apache']['document_root']}/index.html" do
     message: node['apache']['site_message'],
     server_name: node['apache']['server_name'],
     platform: node['platform'],
-    platform_version: node['platform_version']
+    platform_version: node['platform_version'],
+    var1: node['my_cookbook']['var1'],
+    var2: node['my_cookbook']['var2']
   )
   # Only restart if not in a container environment
   notifies :restart, "service[#{node['apache']['service_name']}]", :delayed unless File.exist?('/.dockerenv')
@@ -159,25 +161,25 @@ bash 'ensure_apache_running' do
     # Check if Apache is running
     if ! pgrep -f apache2 >/dev/null 2>&1; then
       echo "Apache not running, attempting manual start..."
-      
+
       # Check what's wrong
       echo "Checking Apache status:"
       systemctl status apache2 --no-pager 2>&1 || true
-      
+
       echo "Checking Apache config:"
       apache2ctl configtest 2>&1 || true
-      
+
       echo "Checking port 80:"
       lsof -Pi :80 -sTCP:LISTEN 2>&1 || echo "Port 80 is free"
-      
+
       # Try different start methods
       systemctl start apache2 2>&1 || \
       service apache2 start 2>&1 || \
       /usr/sbin/apache2ctl start 2>&1 || \
       echo "WARNING: Could not start Apache automatically"
-      
+
       sleep 2
-      
+
       # Final check
       if pgrep -f apache2 >/dev/null 2>&1; then
         echo "✓ Apache is now running"

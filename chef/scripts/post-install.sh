@@ -43,13 +43,6 @@ if [ ! -d "${COOKBOOK_PATH}" ]; then
     exit 1
 fi
 
-# Check if node configuration exists
-NODE_CONFIG="${PERMANENT_INSTALL_PATH}/nodes/localhost.json"
-if [ ! -f "${NODE_CONFIG}" ]; then
-    echo "Error: Node configuration not found at ${NODE_CONFIG}"
-    exit 1
-fi
-
 echo "Running Apache installation via Chef..."
 echo "This will:"
 echo "  - Install Apache2 web server"
@@ -65,7 +58,19 @@ cd "${PERMANENT_INSTALL_PATH}"
 "${PERMANENT_INSTALL_PATH}/chef/bin-wrappers/chef-client" \
     --local-mode \
     --config "${PERMANENT_INSTALL_PATH}/chef/etc/client.rb" \
-    --json-attributes "${NODE_CONFIG}" \
+    --json-attributes <(cat <<EOF
+{
+  "run_list": ["recipe[apache::default]"],
+  "apache": {
+    "server_name": "localhost"
+  },
+  "my_cookbook": {
+    "var1": "${FLEET_SECRET_VAR1}",
+    "var2": "var2_content"
+  }
+}
+EOF
+) \
     --log-level info \
     --force-formatter \
     --no-color

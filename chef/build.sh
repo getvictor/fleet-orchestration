@@ -164,22 +164,11 @@ chmod +x "${BUILD_DIR}/chef-runtime/chef/bin-wrappers/"*
 echo "Step 6: Copying cookbooks..."
 cp -r "${SCRIPT_DIR}/cookbooks" "${BUILD_DIR}/chef-runtime/"
 
-echo "Step 7: Creating node configuration..."
-mkdir -p "${BUILD_DIR}/chef-runtime/nodes"
-cat > "${BUILD_DIR}/chef-runtime/nodes/localhost.json" << 'EOF'
-{
-  "run_list": ["recipe[apache::default]"],
-  "apache": {
-    "server_name": "localhost"
-  }
-}
-EOF
-
-echo "Step 8: Creating tarball..."
+echo "Step 7: Creating tarball..."
 cd "${BUILD_DIR}"
 tar -czf "${OUTPUT_DIR}/chef-runtime.tar.gz" chef-runtime/
 
-echo "Step 9: Copying installation scripts..."
+echo "Step 8: Copying installation scripts..."
 cp "${SCRIPT_DIR}/scripts/install.sh" "${OUTPUT_DIR}/"
 cp "${SCRIPT_DIR}/scripts/post-install.sh" "${OUTPUT_DIR}/"
 cp "${SCRIPT_DIR}/scripts/uninstall.sh" "${OUTPUT_DIR}/"
