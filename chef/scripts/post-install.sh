@@ -15,7 +15,7 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# post-install.sh doesn't need INSTALL_PATH since Chef is already installed
+# post-install.sh doesn't need INSTALLER_PATH since Chef is already installed
 if [ ! -d "${PERMANENT_INSTALL_PATH}" ]; then
     echo "Error: Chef runtime not found at ${PERMANENT_INSTALL_PATH}"
     echo "Please run install.sh first"

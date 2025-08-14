@@ -68,14 +68,14 @@ chef-runtime/
 - Ensure service starts automatically via systemd
 
 ### Installation Flow (on Ubuntu Linux)
-1. User extracts tar.gz to `$INSTALL_PATH` (temporary directory)
+1. User extracts tar.gz to `$INSTALLER_PATH` (temporary directory)
 2. User runs `sudo install.sh` to:
    - Copy Chef runtime from temp to `/opt/chef-runtime`
    - Set up embedded Ruby environment
    - Set up system-wide commands
 3. User runs `sudo post-install.sh` to execute cookbook
 4. Apache server starts serving "It works!" page
-5. `$INSTALL_PATH` can be deleted after installation
+5. `$INSTALLER_PATH` can be deleted after installation
 
 ## Implementation Steps
 
@@ -133,5 +133,5 @@ chef/
 - Build artifacts must be Linux x86_64 compatible
 - Scripts must use bash/sh syntax compatible with Ubuntu
 - Scripts can perform system-wide installations and modifications
-- `$INSTALL_PATH` is a temporary directory used only during installation
+- `$INSTALLER_PATH` is a temporary directory used only during installation
 - Permanent installation location: `/opt/chef-runtime`

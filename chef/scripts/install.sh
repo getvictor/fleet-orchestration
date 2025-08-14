@@ -15,22 +15,22 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-if [ -z "$INSTALL_PATH" ]; then
-    echo "Error: INSTALL_PATH environment variable is not set"
-    echo "Usage: INSTALL_PATH=/path/to/temp/extract sudo ./install.sh"
-    echo "Note: INSTALL_PATH should be the temporary directory where you extracted the tar.gz"
+if [ -z "$INSTALLER_PATH" ]; then
+    echo "Error: INSTALLER_PATH environment variable is not set"
+    echo "Usage: INSTALLER_PATH=/path/to/temp/extract sudo ./install.sh"
+    echo "Note: INSTALLER_PATH should be the temporary directory where you extracted the tar.gz"
     exit 1
 fi
 
-if [ ! -d "${INSTALL_PATH}" ]; then
-    echo "Error: ${INSTALL_PATH} does not exist"
+if [ ! -d "${INSTALLER_PATH}" ]; then
+    echo "Error: ${INSTALLER_PATH} does not exist"
     exit 1
 fi
 
-if [ ! -d "${INSTALL_PATH}/chef-runtime" ]; then
-    echo "Error: chef-runtime directory not found at ${INSTALL_PATH}/chef-runtime"
-    echo "Please extract chef-runtime.tar.gz to ${INSTALL_PATH} first:"
-    echo "  tar -xzf chef-runtime.tar.gz -C ${INSTALL_PATH}"
+if [ ! -d "${INSTALLER_PATH}/chef-runtime" ]; then
+    echo "Error: chef-runtime directory not found at ${INSTALLER_PATH}/chef-runtime"
+    echo "Please extract chef-runtime.tar.gz to ${INSTALLER_PATH} first:"
+    echo "  tar -xzf chef-runtime.tar.gz -C ${INSTALLER_PATH}"
     exit 1
 fi
 
@@ -75,7 +75,7 @@ fi
 # Create permanent directory and copy files
 echo "Copying files to permanent location..."
 mkdir -p "$(dirname ${PERMANENT_INSTALL_PATH})"
-cp -r "${INSTALL_PATH}/chef-runtime" "${PERMANENT_INSTALL_PATH}"
+cp -r "${INSTALLER_PATH}/chef-runtime" "${PERMANENT_INSTALL_PATH}"
 
 echo "Setting up permissions..."
 chmod -R 755 "${PERMANENT_INSTALL_PATH}"
@@ -131,7 +131,7 @@ echo "Chef has been installed to: ${PERMANENT_INSTALL_PATH}"
 echo "Configuration file: ${PERMANENT_INSTALL_PATH}/chef/etc/client.rb"
 echo "Cookbooks location: ${PERMANENT_INSTALL_PATH}/cookbooks"
 echo ""
-echo "The temporary directory ${INSTALL_PATH} can now be safely deleted."
+echo "The temporary directory ${INSTALLER_PATH} can now be safely deleted."
 echo ""
 echo "You can now run:"
 echo "  - chef-client --version"

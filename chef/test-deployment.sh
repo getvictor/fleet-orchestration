@@ -94,7 +94,7 @@ log "${GREEN}✓ Extraction complete${NC}"
 
 # Run install.sh
 log "\n${GREEN}Step 4: Running install.sh${NC}"
-docker exec -e INSTALL_PATH=${TEST_INSTALL_PATH} ${CONTAINER_NAME} bash -c "cd ${TEST_INSTALL_PATH} && ./install.sh" 2>&1 | tee -a "$LOG_FILE"
+docker exec -e INSTALLER_PATH=${TEST_INSTALL_PATH} ${CONTAINER_NAME} bash -c "cd ${TEST_INSTALL_PATH} && ./install.sh" 2>&1 | tee -a "$LOG_FILE"
 
 # Verify Chef installation
 log "\n${GREEN}Step 5: Verifying Chef installation${NC}"
