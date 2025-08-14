@@ -107,19 +107,16 @@ export RUBYLIB="${CHEF_RUNTIME}/chef/embedded/lib/ruby/site_ruby/3.1.0:${CHEF_RU
 # Accept Chef license automatically
 export CHEF_LICENSE="accept-silent"
 
-# Save current LD_LIBRARY_PATH
-OLD_LD_LIBRARY_PATH="${LD_LIBRARY_PATH}"
+# Clean environment for child processes
+export CHEF_CLEAN_ENV="true"
 
-# Set LD_LIBRARY_PATH only for Ruby
-export LD_LIBRARY_PATH="${CHEF_RUNTIME}/chef/embedded/lib"
-
-# Run Ruby
-"${CHEF_RUNTIME}/chef/embedded/bin/ruby" \
+# Execute Ruby directly - RPATH is fixed by patchelf during install
+exec "${CHEF_RUNTIME}/chef/embedded/bin/ruby" \
   -I"${CHEF_RUNTIME}/chef/embedded/lib/ruby/site_ruby/3.1.0" \
   -I"${CHEF_RUNTIME}/chef/embedded/lib/ruby/site_ruby/3.1.0/x86_64-linux" \
   -I"${CHEF_RUNTIME}/chef/embedded/lib/ruby/3.1.0" \
   -I"${CHEF_RUNTIME}/chef/embedded/lib/ruby/3.1.0/x86_64-linux" \
-  -e "ENV['LD_LIBRARY_PATH'] = '$OLD_LD_LIBRARY_PATH'; load '${CHEF_RUNTIME}/chef/bin/chef-client'" -- "$@"
+  "${CHEF_RUNTIME}/chef/bin/chef-client" "$@"
 SCRIPT
 
 # Create chef-solo wrapper
@@ -136,19 +133,16 @@ export RUBYLIB="${CHEF_RUNTIME}/chef/embedded/lib/ruby/site_ruby/3.1.0:${CHEF_RU
 # Accept Chef license automatically
 export CHEF_LICENSE="accept-silent"
 
-# Save current LD_LIBRARY_PATH
-OLD_LD_LIBRARY_PATH="${LD_LIBRARY_PATH}"
+# Clean environment for child processes
+export CHEF_CLEAN_ENV="true"
 
-# Set LD_LIBRARY_PATH only for Ruby
-export LD_LIBRARY_PATH="${CHEF_RUNTIME}/chef/embedded/lib"
-
-# Run Ruby
-"${CHEF_RUNTIME}/chef/embedded/bin/ruby" \
+# Execute Ruby directly - RPATH is fixed by patchelf during install
+exec "${CHEF_RUNTIME}/chef/embedded/bin/ruby" \
   -I"${CHEF_RUNTIME}/chef/embedded/lib/ruby/site_ruby/3.1.0" \
   -I"${CHEF_RUNTIME}/chef/embedded/lib/ruby/site_ruby/3.1.0/x86_64-linux" \
   -I"${CHEF_RUNTIME}/chef/embedded/lib/ruby/3.1.0" \
   -I"${CHEF_RUNTIME}/chef/embedded/lib/ruby/3.1.0/x86_64-linux" \
-  -e "ENV['LD_LIBRARY_PATH'] = '$OLD_LD_LIBRARY_PATH'; load '${CHEF_RUNTIME}/chef/bin/chef-solo'" -- "$@"
+  "${CHEF_RUNTIME}/chef/bin/chef-solo" "$@"
 SCRIPT
 
 # Create knife wrapper

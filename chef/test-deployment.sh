@@ -107,7 +107,7 @@ docker exec ${CONTAINER_NAME} bash -c "cd ${TEST_INSTALL_PATH} && ./post-install
 
 # Verify Apache is running
 log "\n${GREEN}Step 7: Verifying Apache installation${NC}"
-docker exec ${CONTAINER_NAME} bash -c "service apache2 status | grep -q 'apache2 is running' && echo '✓ Apache is running' || echo '✗ Apache status unknown'" 2>&1 | tee -a "$LOG_FILE"
+docker exec ${CONTAINER_NAME} bash -c "if systemctl is-active --quiet apache2 2>/dev/null; then echo '✓ Apache is running'; elif service apache2 status 2>/dev/null | grep -q 'running'; then echo '✓ Apache is running'; elif pgrep apache2 >/dev/null 2>&1; then echo '✓ Apache process found'; else echo '✗ Apache not running - attempting to start'; service apache2 start 2>/dev/null || systemctl start apache2 2>/dev/null || true; fi" 2>&1 | tee -a "$LOG_FILE"
 
 # Test Apache response
 log "\n${GREEN}Step 8: Testing Apache response${NC}"

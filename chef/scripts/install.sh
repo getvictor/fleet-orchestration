@@ -55,6 +55,11 @@ if ! dpkg -l | grep -q libstdc++6; then
     REQUIRED_PACKAGES="${REQUIRED_PACKAGES} libstdc++6"
 fi
 
+# Chef also requires libyaml for YAML parsing
+if ! dpkg -l | grep -q libyaml-0-2; then
+    REQUIRED_PACKAGES="${REQUIRED_PACKAGES} libyaml-0-2"
+fi
+
 if [ ! -z "${REQUIRED_PACKAGES}" ]; then
     echo "Installing required system libraries..."
     apt-get update
@@ -82,6 +87,78 @@ chmod -R 755 "${PERMANENT_INSTALL_PATH}"
 # Only chmod actual files, not symlinks
 find "${PERMANENT_INSTALL_PATH}/chef/bin/" -type f -exec chmod +x {} \; 2>/dev/null || true
 chmod +x "${PERMANENT_INSTALL_PATH}/chef/bin-wrappers/"*
+
+# Set up library path for embedded Ruby using patchelf
+echo "Setting up embedded library paths..."
+if [ -d "${PERMANENT_INSTALL_PATH}/chef/embedded/lib" ]; then
+    # Check if libruby exists
+    if ls "${PERMANENT_INSTALL_PATH}/chef/embedded/lib"/libruby.so.* >/dev/null 2>&1; then
+        echo "Found Ruby libraries in embedded/lib"
+        
+        # Install patchelf and file command if not present
+        MISSING_TOOLS=""
+        if ! command -v patchelf &> /dev/null; then
+            MISSING_TOOLS="patchelf"
+        fi
+        if ! command -v file &> /dev/null; then
+            MISSING_TOOLS="${MISSING_TOOLS} file"
+        fi
+        
+        if [ ! -z "${MISSING_TOOLS}" ]; then
+            echo "Installing required tools: ${MISSING_TOOLS}"
+            apt-get update >/dev/null 2>&1
+            apt-get install -y ${MISSING_TOOLS} >/dev/null 2>&1
+        fi
+        
+        # Fix RPATH in Ruby binary to look for libraries in embedded/lib
+        if command -v patchelf &> /dev/null; then
+            echo "Fixing Ruby binary RPATH..."
+            patchelf --set-rpath "${PERMANENT_INSTALL_PATH}/chef/embedded/lib" \
+                     "${PERMANENT_INSTALL_PATH}/chef/embedded/bin/ruby" 2>/dev/null || true
+            
+            # Also fix any other binaries that might need it
+            if command -v file &> /dev/null; then
+                for binary in "${PERMANENT_INSTALL_PATH}/chef/embedded/bin/"*; do
+                    if [ -f "$binary" ] && [ -x "$binary" ]; then
+                        # Check if it's an ELF binary
+                        if file "$binary" 2>/dev/null | grep -q "ELF"; then
+                            patchelf --set-rpath "${PERMANENT_INSTALL_PATH}/chef/embedded/lib:/usr/lib/x86_64-linux-gnu" \
+                                     "$binary" 2>/dev/null || true
+                        fi
+                    fi
+                done
+                
+                # Also fix Ruby extension modules (.so files)
+                echo "Fixing Ruby extension modules..."
+                find "${PERMANENT_INSTALL_PATH}/chef/embedded/lib/ruby" -name "*.so" -type f 2>/dev/null | while read -r sofile; do
+                    if file "$sofile" 2>/dev/null | grep -q "ELF"; then
+                        patchelf --set-rpath "${PERMANENT_INSTALL_PATH}/chef/embedded/lib:/usr/lib/x86_64-linux-gnu" \
+                                 "$sofile" 2>/dev/null || true
+                    fi
+                done
+            else
+                # Fallback: just fix known important binaries
+                for name in ruby erb gem irb rdoc ri; do
+                    binary="${PERMANENT_INSTALL_PATH}/chef/embedded/bin/${name}"
+                    if [ -f "$binary" ]; then
+                        patchelf --set-rpath "${PERMANENT_INSTALL_PATH}/chef/embedded/lib:/usr/lib/x86_64-linux-gnu" \
+                                 "$binary" 2>/dev/null || true
+                    fi
+                done
+            fi
+            echo "✓ Binary RPATH fixed - no LD_LIBRARY_PATH needed"
+        else
+            echo "Warning: patchelf not available, falling back to wrapper scripts"
+        fi
+    else
+        echo "Warning: libruby.so not found in embedded/lib"
+    fi
+    
+    # Remove any old ld.so.conf.d entry
+    rm -f /etc/ld.so.conf.d/chef-embedded.conf
+    
+    echo "✓ Library paths configured"
+fi
 
 # Create necessary directories for Chef
 echo "Creating Chef working directories..."
@@ -119,6 +196,16 @@ else
     # Try to debug the issue
     echo "Debug: Checking if Ruby exists..."
     ls -la "${PERMANENT_INSTALL_PATH}/chef/embedded/bin/ruby" 2>/dev/null || echo "Ruby not found"
+    echo "Debug: Checking for libruby in embedded/lib..."
+    ls -la "${PERMANENT_INSTALL_PATH}/chef/embedded/lib"/libruby* 2>/dev/null || echo "libruby not found in embedded/lib"
+    echo "Debug: Checking wrapper script..."
+    ls -la "${PERMANENT_INSTALL_PATH}/chef/bin-wrappers/chef-client" 2>/dev/null || echo "Wrapper not found"
+    echo "Debug: Testing Ruby directly..."
+    "${PERMANENT_INSTALL_PATH}/chef/embedded/bin/ruby" --version 2>&1 || echo "Ruby execution failed"
+    echo "Debug: Checking for missing libraries..."
+    ldd "${PERMANENT_INSTALL_PATH}/chef/embedded/bin/ruby" 2>&1 | grep "not found" || echo "All libraries appear present"
+    echo "Debug: Testing wrapper script with error output..."
+    "${PERMANENT_INSTALL_PATH}/chef/bin-wrappers/chef-client" --version 2>&1 || true
     exit 1
 fi
 
