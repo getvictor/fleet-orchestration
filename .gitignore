@@ -2,3 +2,4 @@
 .idea
 ansible/output
 chef/output
+puppet/output

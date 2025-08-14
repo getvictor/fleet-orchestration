@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Welcome to <%= @hostname %></title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            padding: 50px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            font-size: 3em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        .info {
+            font-size: 1.2em;
+            margin: 20px 0;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+        }
+        .puppet-badge {
+            display: inline-block;
+            background: #ffae00;
+            color: #1a1a1a;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-top: 20px;
+        }
+        .server-info {
+            margin-top: 30px;
+            font-size: 0.9em;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎭 It works!</h1>
+        <div class="info">
+            <p><strong>Welcome to <%= @hostname %></strong></p>
+            <p>Apache Web Server successfully configured by Puppet</p>
+        </div>
+        <div class="puppet-badge">Powered by Puppet</div>
+        <div class="server-info">
+            <p>Hostname: <%= @hostname %></p>
+            <p>FQDN: <%= @fqdn %></p>
+            <p>IP Address: <%= @ipaddress %></p>
+            <p>Operating System: <%= @operatingsystem %> <%= @operatingsystemrelease %></p>
+            <p>Puppet Version: <%= @puppetversion %></p>
+            <p>Timestamp: <%= Time.now.strftime('%Y-%m-%d %H:%M:%S %Z') %></p>
+        </div>
+    </div>
+</body>
+</html>

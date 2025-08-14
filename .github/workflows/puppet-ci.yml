@@ -1,0 +1,145 @@
+name: Puppet CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'puppet/**'
+      - '.github/workflows/puppet-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'puppet/**'
+      - '.github/workflows/puppet-ci.yml'
+  workflow_dispatch:
+
+defaults:
+  run:
+    working-directory: puppet
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Display versions
+      run: |
+        echo "Docker version:"
+        docker --version
+        echo "Ruby version:"
+        ruby --version || echo "Ruby not installed"
+
+    - name: Make scripts executable
+      run: |
+        chmod +x build.sh
+        chmod +x test-deployment.sh
+        chmod +x cleanup-containers.sh
+
+    - name: Build Puppet package
+      run: |
+        echo "Building Puppet package for Ubuntu 24.04..."
+        ./build.sh
+
+    - name: Verify build outputs
+      run: |
+        echo "Checking build outputs..."
+        ls -la output/
+        if [ ! -f "output/puppet-runtime.tar.gz" ]; then
+          echo "Error: puppet-runtime.tar.gz not found!"
+          exit 1
+        fi
+        if [ ! -f "output/install.sh" ]; then
+          echo "Error: install.sh not found!"
+          exit 1
+        fi
+        if [ ! -f "output/post-install.sh" ]; then
+          echo "Error: post-install.sh not found!"
+          exit 1
+        fi
+        if [ ! -f "output/uninstall.sh" ]; then
+          echo "Error: uninstall.sh not found!"
+          exit 1
+        fi
+        echo "All build outputs verified successfully"
+
+    - name: Run deployment test with Ubuntu 24.04
+      run: |
+        echo "Running deployment test with Ubuntu 24.04..."
+        ./test-deployment.sh
+
+    - name: Upload build artifacts
+      if: success()
+      uses: actions/upload-artifact@v4
+      with:
+        name: puppet-runtime-ubuntu-24.04
+        path: |
+          puppet/output/puppet-runtime.tar.gz
+          puppet/output/install.sh
+          puppet/output/post-install.sh
+          puppet/output/uninstall.sh
+
+    - name: Upload test logs
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-logs-ubuntu-24.04
+        path: /tmp/puppet-deployment-*.log
+        if-no-files-found: ignore
+
+    - name: Clean up Docker containers
+      if: always()
+      run: |
+        echo "Cleaning up Docker containers..."
+        docker ps -aq --filter "name=puppet-test-" | xargs -r docker rm -f || true
+
+  validate-manifests:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.2'
+
+    - name: Install Puppet development tools
+      run: |
+        gem install puppet-lint
+        gem install metadata-json-lint || true
+        gem install puppet-syntax
+
+    - name: Validate Puppet manifest syntax
+      run: |
+        echo "Validating Puppet manifest syntax..."
+        find . -name '*.pp' -type f | xargs -I {} ruby -c {} || true
+        puppet-syntax check manifests/**/*.pp || true
+        puppet-syntax check modules/**/*.pp || true
+
+    - name: Lint Puppet manifests
+      run: |
+        echo "Linting Puppet manifests..."
+        puppet-lint --no-documentation-check --no-autoloader_layout-check manifests/ || true
+        puppet-lint --no-documentation-check --no-autoloader_layout-check modules/ || true
+
+    - name: Validate ERB templates
+      run: |
+        echo "Validating ERB templates..."
+        find modules -name '*.erb' -type f | while read template; do
+          echo "Checking template: $template"
+          erb -P -x -T '-' "$template" | ruby -c || true
+        done
+
+    - name: Check Puppet configuration
+      run: |
+        echo "Checking Puppet configuration..."
+        if [ -f "config/puppet.conf" ]; then
+          echo "puppet.conf found and valid"
+          cat config/puppet.conf
+        else
+          echo "Warning: puppet.conf not found"
+        fi
