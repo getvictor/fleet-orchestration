@@ -59,7 +59,7 @@ cd "${PERMANENT_INSTALL_PATH}"
 ansible-playbook "${PLAYBOOK_PATH}" \
     --connection=local \
     --inventory="localhost," \
-    --extra-vars="var1=$FLEET_SECRET_VAR1 var2=var2_content" \
+    --extra-vars="var1=${FLEET_SECRET_VAR1} var2=var2_content" \
     -v
 
 RESULT=$?

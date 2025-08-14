@@ -10,7 +10,7 @@ NC='\033[0m' # No Color
 
 # Test configuration
 CONTAINER_NAME="ansible-test-$(date +%s)"
-IMAGE="ubuntu:22.04"
+IMAGE="ubuntu:24.04"
 TEST_INSTALLER_PATH="/tmp/ansible-install"
 OUTPUT_DIR="$(pwd)/output"
 LOG_FILE="/tmp/test-deployment-$(date +%Y%m%d-%H%M%S).log"

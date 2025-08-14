@@ -40,20 +40,56 @@ else
 fi
 
 echo "Removing Apache2..."
-if dpkg -l | grep -q apache2; then
-    apt-get remove -y apache2 apache2-utils apache2-bin
-    apt-get purge -y apache2 apache2-utils apache2-bin
-    apt-get autoremove -y
-    echo "✓ Apache2 removed"
+# Get all installed apache2 packages
+APACHE_PACKAGES=$(dpkg -l | grep -E '^ii.*apache2' | awk '{print $2}')
 
-    if [ -d /var/www/html ]; then
-        rm -rf /var/www/html
+if [ -n "$APACHE_PACKAGES" ]; then
+    echo "Found Apache packages:"
+    echo "$APACHE_PACKAGES"
+    
+    # Stop Apache if running
+    service apache2 stop 2>/dev/null || true
+    
+    # Remove all Apache packages (use echo to properly expand the variable)
+    echo "$APACHE_PACKAGES" | xargs apt-get remove -y
+    echo "$APACHE_PACKAGES" | xargs apt-get purge -y
+    
+    # Also explicitly remove common Apache packages that might be missed
+    apt-get remove -y apache2 apache2-utils apache2-bin apache2-data 2>/dev/null || true
+    apt-get purge -y apache2-common 2>/dev/null || true
+    
+    # Clean up dependencies
+    apt-get autoremove -y
+    
+    echo "✓ Apache2 packages removed"
+
+    # Clean up directories
+    if [ -d /var/www ]; then
+        rm -rf /var/www
         echo "✓ Apache web root removed"
     fi
 
     if [ -d /etc/apache2 ]; then
         rm -rf /etc/apache2
         echo "✓ Apache configuration removed"
+    fi
+    
+    # Remove Apache user if exists
+    if id -u www-data >/dev/null 2>&1; then
+        deluser www-data 2>/dev/null || true
+        echo "✓ Apache user removed"
+    fi
+    
+    # Clean up any remaining Apache files
+    rm -rf /var/log/apache2 2>/dev/null || true
+    rm -rf /var/cache/apache2 2>/dev/null || true
+    rm -rf /usr/lib/apache2 2>/dev/null || true
+    rm -rf /usr/share/apache2 2>/dev/null || true
+    
+    # Remove the apache2 binary if it still exists
+    if [ -f /usr/sbin/apache2 ]; then
+        rm -f /usr/sbin/apache2
+        echo "✓ Apache2 binary removed"
     fi
 else
     echo "- Apache2 was not installed"
