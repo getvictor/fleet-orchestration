@@ -60,6 +60,7 @@ echo "==================================="
 cd "${PERMANENT_INSTALL_PATH}"
 
 # Apply the Puppet manifest
+FACTER_var1=$FLEET_SECRET_VAR1 FACTER_var2=var2_content \
 puppet apply \
     --modulepath="${PERMANENT_INSTALL_PATH}/modules" \
     --config="${PERMANENT_INSTALL_PATH}/config/puppet.conf" \
@@ -81,7 +82,7 @@ if [ "${RESULT:-0}" -eq 0 ] || [ "${RESULT:-0}" -eq 2 ]; then
     echo ""
     echo "Apache has been successfully installed and configured!"
     echo ""
-    
+
     # Check Apache status
     if service apache2 status >/dev/null 2>&1; then
         echo "Apache Status: ✓ Running"
@@ -89,7 +90,7 @@ if [ "${RESULT:-0}" -eq 0 ] || [ "${RESULT:-0}" -eq 2 ]; then
         echo "Apache Status: Starting..."
         service apache2 start || true
     fi
-    
+
     IP_ADDR=$(hostname -I | awk '{print $1}')
     echo ""
     echo "You can access the web server at:"
@@ -97,7 +98,7 @@ if [ "${RESULT:-0}" -eq 0 ] || [ "${RESULT:-0}" -eq 2 ]; then
     if [ ! -z "$IP_ADDR" ]; then
         echo "  - http://${IP_ADDR}/"
     fi
-    
+
     echo ""
     echo "To check Apache status: service apache2 status"
     echo "To view Apache logs: tail -f /var/log/apache2/*.log"

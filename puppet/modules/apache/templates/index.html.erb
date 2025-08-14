@@ -51,18 +51,19 @@
 </head>
 <body>
     <div class="container">
-        <h1>🎭 It works!</h1>
+        <h1>It works!</h1>
         <div class="info">
-            <p><strong>Welcome to <%= @hostname %></strong></p>
+            <p><strong>Welcome to <%= @facts['hostname'] || 'Server' %></strong></p>
             <p>Apache Web Server successfully configured by Puppet</p>
         </div>
         <div class="puppet-badge">Powered by Puppet</div>
         <div class="server-info">
-            <p>Hostname: <%= @hostname %></p>
-            <p>FQDN: <%= @fqdn %></p>
-            <p>IP Address: <%= @ipaddress %></p>
-            <p>Operating System: <%= @operatingsystem %> <%= @operatingsystemrelease %></p>
-            <p>Puppet Version: <%= @puppetversion %></p>
+            <p>Your secret is <%= @facts['var1'] %></p>
+            <p>The other variable is <%= @facts['var2'] %></p>
+            <p>Hostname: <%= @facts['hostname'] || 'unknown' %></p>
+            <p>Operating System: <%= @facts['os']['name'] || 'unknown' %> <%= @facts['os']['release']['full'] || '' %></p>
+            <p>Architecture: <%= @facts['architecture'] || 'unknown' %></p>
+            <p>Puppet Version: <%= @facts['puppetversion'] || 'unknown' %></p>
             <p>Timestamp: <%= Time.now.strftime('%Y-%m-%d %H:%M:%S %Z') %></p>
         </div>
     </div>
