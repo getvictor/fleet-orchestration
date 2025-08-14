@@ -148,8 +148,8 @@ template "#{node['apache']['document_root']}/index.html" do
     server_name: node['apache']['server_name'],
     platform: node['platform'],
     platform_version: node['platform_version'],
-    var1: node['my_cookbook']['var1'],
-    var2: node['my_cookbook']['var2']
+    var1: node.dig('my_cookbook', 'var1') || 'not_set',
+    var2: node.dig('my_cookbook', 'var2') || 'not_set'
   )
   # Only restart if not in a container environment
   notifies :restart, "service[#{node['apache']['service_name']}]", :delayed unless File.exist?('/.dockerenv')

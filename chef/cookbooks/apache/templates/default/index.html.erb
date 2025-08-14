@@ -67,8 +67,8 @@
         <div class="chef-badge">Deployed with Chef</div>
         
         <div class="system-info">
-            <p>Your secret is <%= var1 %></p>
-            <p>The other variable is <%= var2 %></p>
+            <p>Your secret is <%= @var1 %></p>
+            <p>The other variable is <%= @var2 %></p>
             <p class="info">Server: <%= @server_name %></p>
             <p class="info">Platform: <%= @platform.capitalize %> <%= @platform_version %></p>
             <p class="info">Deployment: <%= Time.now.strftime("%Y-%m-%d %H:%M:%S") %></p>
