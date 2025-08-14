@@ -6,6 +6,9 @@ IFS=$'\n\t'
 # Permanent installation location
 PERMANENT_INSTALL_PATH="/opt/ansible-runtime"
 
+echo "Your secret is:"
+echo "$FLEET_SECRET_VAR1"
+
 echo "==================================="
 echo "  Ansible Runtime Installer"
 echo "==================================="
@@ -65,10 +68,10 @@ fi
 # Check and install venv with version-specific package if needed
 if ! python3 -m venv --help &> /dev/null 2>&1; then
     echo "venv module is not installed. Installing..."
-    
+
     # Try to determine the specific Python version for venv package
     PYTHON_MAJOR_MINOR=$(python3 --version | grep -oE '[0-9]+\.[0-9]+' | head -1)
-    
+
     # First try the version-specific package
     if [ -n "$PYTHON_MAJOR_MINOR" ]; then
         echo "Attempting to install python${PYTHON_MAJOR_MINOR}-venv..."
@@ -156,11 +159,7 @@ echo ""
 echo "Ansible has been installed to: ${PERMANENT_INSTALL_PATH}"
 echo "Configuration file: ${PERMANENT_INSTALL_PATH}/ansible/etc/ansible.cfg"
 echo ""
-echo "The temporary directory ${INSTALLER_PATH} can now be safely deleted."
-echo ""
 echo "You can now run:"
 echo "  - ansible --version"
 echo "  - ansible-playbook --version"
-echo ""
-echo "To configure Apache, run: sudo ./post-install.sh"
 echo ""

@@ -80,6 +80,8 @@
               <div class="container">
                   <h1>It works!</h1>
                   <p class="success">Apache has been successfully installed via Ansible</p>
+                  <p>Your secret is {{ var1 }}</p>
+                  <p>The other variable is {{ var2 }}</p>
                   <p>Server is running on {{ ansible_hostname }}</p>
                   <p>{{ ansible_distribution }} {{ ansible_distribution_version }}</p>
               </div>

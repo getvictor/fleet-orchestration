@@ -95,7 +95,7 @@ log "${GREEN}✓ Extraction complete${NC}"
 
 # Run install.sh
 log "\n${GREEN}Step 4: Running install.sh${NC}"
-docker exec -e INSTALLER_PATH=${TEST_INSTALLER_PATH} ${CONTAINER_NAME} bash -c "cd ${TEST_INSTALLER_PATH} && ./install.sh" 2>&1 | tee -a "$LOG_FILE"
+docker exec -e INSTALLER_PATH=${TEST_INSTALLER_PATH} -e FLEET_SECRET_VAR1=var1_contents ${CONTAINER_NAME} bash -c "cd ${TEST_INSTALLER_PATH} && ./install.sh" 2>&1 | tee -a "$LOG_FILE"
 
 # Verify Ansible installation
 log "\n${GREEN}Step 5: Verifying Ansible installation${NC}"
@@ -104,7 +104,7 @@ log "${GREEN}✓ Ansible installed successfully${NC}"
 
 # Run post-install.sh to install Apache
 log "\n${GREEN}Step 6: Running post-install.sh (Apache installation)${NC}"
-docker exec ${CONTAINER_NAME} bash -c "cd ${TEST_INSTALLER_PATH} && ./post-install.sh" 2>&1 | tee -a "$LOG_FILE"
+docker exec -e FLEET_SECRET_VAR1=var1_contents ${CONTAINER_NAME} bash -c "cd ${TEST_INSTALLER_PATH} && ./post-install.sh" 2>&1 | tee -a "$LOG_FILE"
 
 # Verify Apache is running (use service command which works without systemd)
 log "\n${GREEN}Step 7: Verifying Apache installation${NC}"
