@@ -1,10 +1,3 @@
-#
-# Cookbook:: apache
-# Recipe:: default
-#
-# Copyright:: 2024, Chef Apache Installer
-#
-
 # Update apt cache
 apt_update 'update' do
   frequency 86400
