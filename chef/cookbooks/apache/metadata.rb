@@ -1,0 +1,11 @@
+name 'apache'
+maintainer 'Chef Apache Installer'
+maintainer_email 'admin@example.com'
+license 'Apache-2.0'
+description 'Installs/Configures Apache web server'
+version '1.0.0'
+chef_version '>= 16.0'
+supports 'ubuntu', '>= 20.04'
+
+issues_url 'https://github.com/example/apache/issues'
+source_url 'https://github.com/example/apache'
