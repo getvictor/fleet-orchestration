@@ -1,5 +1,11 @@
 # Apache module for Puppet
 class apache {
+  # Update apt cache before installing
+  exec { 'apt-update':
+    command => '/usr/bin/apt-get update',
+    before  => Package['apache2'],
+  }
+
   # Install Apache package
   package { 'apache2':
     ensure => installed,

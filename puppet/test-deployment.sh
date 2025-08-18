@@ -14,6 +14,7 @@ IMAGE="ubuntu:24.04"
 TEST_INSTALLER_PATH="/tmp/puppet-install"
 OUTPUT_DIR="$(pwd)/output"
 LOG_FILE="/tmp/puppet-deployment-$(date +%Y%m%d-%H%M%S).log"
+TEST_FAILED=false
 
 # Function to log output to both console and file
 log() {
@@ -110,19 +111,39 @@ docker exec ${CONTAINER_NAME} bash -c "service apache2 status | grep -q 'apache2
 log "\n${GREEN}Step 8: Testing Apache response${NC}"
 sleep 3
 
-# Test with wget
-docker exec ${CONTAINER_NAME} bash -c "wget -q -O - http://localhost/ 2>/dev/null | grep -q 'It works!' && echo '✓ Apache is responding with \"It works!\"' || echo '✗ Apache page not as expected'" 2>&1 | tee -a "$LOG_FILE"
+# Test with cat (since wget might not be installed)
+APACHE_TEST_PASSED=false
+if docker exec ${CONTAINER_NAME} bash -c "cat /var/www/html/index.html 2>/dev/null | grep -q 'It works!'"; then
+    log "✓ Apache is responding with \"It works!\""
+    APACHE_TEST_PASSED=true
+else
+    log "${RED}✗ Apache page not as expected${NC}"
+    # Debug: Show what we actually got
+    log "\nDebug: Actual Apache response:"
+    docker exec ${CONTAINER_NAME} bash -c "cat /var/www/html/index.html 2>/dev/null | head -20" 2>&1 | tee -a "$LOG_FILE"
+fi
 
 # Also test from host
 log "\nTesting from host machine (port 8889):"
+HOST_TEST_PASSED=false
 if curl -s http://localhost:8889/ 2>/dev/null | grep -q "It works!"; then
     log "${GREEN}✓ Apache accessible from host${NC}"
+    HOST_TEST_PASSED=true
 else
     if wget -q -O - http://localhost:8889/ 2>/dev/null | grep -q "It works!"; then
         log "${GREEN}✓ Apache accessible from host${NC}"
+        HOST_TEST_PASSED=true
     else
-        log "${YELLOW}Warning: Could not verify Apache from host${NC}"
+        log "${RED}✗ Could not verify Apache from host${NC}"
+        # Debug: Show what we got from host
+        log "\nDebug: Response from host:"
+        curl -s http://localhost:8889/ 2>/dev/null | head -20 | tee -a "$LOG_FILE"
     fi
+fi
+
+# Fail the test if Apache page is not correct
+if [ "$APACHE_TEST_PASSED" = false ] || [ "$HOST_TEST_PASSED" = false ]; then
+    TEST_FAILED=true
 fi
 
 # Clean up temporary directory
@@ -165,6 +186,14 @@ log "  • Apache installed and verified via Puppet"
 log "  • Temporary directory cleaned up"
 log "  • Uninstallation completed successfully"
 log ""
-log "${GREEN}All tests passed!${NC}"
+
+if [ "$TEST_FAILED" = true ]; then
+    log "${RED}TESTS FAILED!${NC}"
+    log "Please check the log for details: $LOG_FILE"
+    exit 1
+else
+    log "${GREEN}All tests passed!${NC}"
+fi
+
 log ""
 log "Full log saved to: $LOG_FILE"

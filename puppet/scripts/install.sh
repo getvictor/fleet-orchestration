@@ -57,52 +57,92 @@ fi
 
 echo "✓ Ubuntu 24.04 $ARCH detected"
 
-# Ensure wget and gpg are available
-if ! command -v wget &> /dev/null; then
-    echo "Installing wget..."
-    apt-get update
-    apt-get install -y wget
+# Check for bundled .deb files
+PUPPET_AGENT_DEB="${INSTALLER_PATH}/puppet-runtime/puppet-agent.deb"
+PUPPET_RELEASE_DEB="${INSTALLER_PATH}/puppet-runtime/puppet-release-noble.deb"
+
+if [ ! -f "$PUPPET_AGENT_DEB" ]; then
+    echo "Error: puppet-agent.deb not found at $PUPPET_AGENT_DEB"
+    exit 1
 fi
 
-if ! command -v gpg &> /dev/null; then
-    echo "Installing gnupg..."
-    apt-get install -y gnupg
+if [ ! -f "$PUPPET_RELEASE_DEB" ]; then
+    echo "Error: puppet-release-noble.deb not found at $PUPPET_RELEASE_DEB"
+    exit 1
 fi
 
 echo ""
-echo "Installing Ruby (required for Puppet)..."
-# Install Ruby and dependencies that Puppet needs
-apt-get update
-apt-get install -y ruby ruby-full rubygems-integration || {
-    echo "Error: Failed to install Ruby"
+echo "Installing Puppet from bundled packages..."
+
+# Install the Puppet release package first (sets up repository configuration)
+echo "Installing Puppet release configuration..."
+dpkg -i "$PUPPET_RELEASE_DEB" || {
+    echo "Error: Failed to install Puppet release package"
     exit 1
 }
 
-echo "✓ Ruby installed"
+# Install the Puppet agent package
+echo "Installing Puppet agent..."
+dpkg -i "$PUPPET_AGENT_DEB" 2>/dev/null || {
+    # If dpkg fails due to dependencies, try to fix them
+    echo "Fixing dependencies..."
+    apt-get update
+    apt-get install -f -y || {
+        echo "Error: Failed to install Puppet agent dependencies"
+        exit 1
+    }
+    
+    # Try installing again
+    dpkg -i "$PUPPET_AGENT_DEB" || {
+        echo "Error: Failed to install Puppet agent package"
+        exit 1
+    }
+}
 
-# Install any Ruby gems that Puppet might need
-echo "Installing required Ruby gems..."
-gem install --no-document facter hiera puppet || true
+echo "✓ Puppet agent installed"
 
-# Copy Puppet runtime files to permanent location
+# Verify Puppet installation
+if [ ! -d "/opt/puppetlabs" ]; then
+    echo "Error: /opt/puppetlabs directory was not created after installation"
+    exit 1
+fi
+
+if [ ! -f "/opt/puppetlabs/puppet/bin/puppet" ]; then
+    echo "Error: Puppet binary not found at /opt/puppetlabs/puppet/bin/puppet"
+    exit 1
+fi
+
+# Copy Puppet runtime configuration to permanent location
 echo ""
-echo "Installing Puppet runtime from temporary location to ${PERMANENT_INSTALL_PATH}..."
+echo "Installing custom Puppet configuration to ${PERMANENT_INSTALL_PATH}..."
 
 if [ -d "${PERMANENT_INSTALL_PATH}" ]; then
     echo "Warning: ${PERMANENT_INSTALL_PATH} already exists - will be overwritten"
     rm -rf "${PERMANENT_INSTALL_PATH}"
 fi
 
-echo "Copying files to permanent location..."
-mkdir -p "$(dirname ${PERMANENT_INSTALL_PATH})"
-cp -r "${INSTALLER_PATH}/puppet-runtime" "${PERMANENT_INSTALL_PATH}"
+echo "Copying configuration files..."
+mkdir -p "${PERMANENT_INSTALL_PATH}"
+
+# Copy our custom configuration, modules, and manifests
+for dir in config modules manifests; do
+    if [ -d "${INSTALLER_PATH}/puppet-runtime/$dir" ]; then
+        cp -r "${INSTALLER_PATH}/puppet-runtime/$dir" "${PERMANENT_INSTALL_PATH}/"
+        echo "✓ Copied $dir"
+    fi
+done
+
+# Copy wrapper scripts
+if [ -f "${INSTALLER_PATH}/puppet-runtime/puppet-apply-wrapper.sh" ]; then
+    cp "${INSTALLER_PATH}/puppet-runtime/puppet-apply-wrapper.sh" "${PERMANENT_INSTALL_PATH}/"
+    chmod +x "${PERMANENT_INSTALL_PATH}/puppet-apply-wrapper.sh"
+fi
 
 echo "Setting up permissions..."
 chmod -R 755 "${PERMANENT_INSTALL_PATH}"
-chmod +x "${PERMANENT_INSTALL_PATH}/puppet-apply-wrapper.sh"
 
-# Create system-wide wrapper
-echo "Creating system-wide puppet wrapper..."
+# Create system-wide wrapper for puppet-apply
+echo "Creating system-wide puppet-apply wrapper..."
 cat > /usr/local/bin/puppet-apply << 'EOF'
 #!/bin/bash
 # Wrapper for Puppet apply with custom configuration
@@ -110,42 +150,36 @@ exec /opt/puppet-runtime/puppet-apply-wrapper.sh "$@"
 EOF
 chmod +x /usr/local/bin/puppet-apply
 
-# Create symlinks for our standalone puppet
-echo "Creating puppet command symlinks..."
-if [ -f "${PERMANENT_INSTALL_PATH}/bin/puppet" ]; then
-    ln -sf "${PERMANENT_INSTALL_PATH}/bin/puppet" /usr/local/bin/puppet
-    echo "✓ Created symlink for puppet"
-fi
+# Create symlinks for Puppet commands
+echo "Creating command symlinks..."
+ln -sf /opt/puppetlabs/puppet/bin/puppet /usr/local/bin/puppet
+ln -sf /opt/puppetlabs/puppet/bin/facter /usr/local/bin/facter
+ln -sf /opt/puppetlabs/puppet/bin/hiera /usr/local/bin/hiera
 
 # Set up Puppet paths
 echo "Setting up Puppet environment..."
 if [ ! -f /etc/profile.d/puppet.sh ]; then
     cat > /etc/profile.d/puppet.sh << 'EOF'
 # Puppet environment setup
-export PATH="/opt/puppet-runtime/bin:/usr/local/bin:$PATH"
+export PATH="/opt/puppetlabs/puppet/bin:/usr/local/bin:$PATH"
 export PUPPET_BASE="/opt/puppet-runtime"
 EOF
     chmod +x /etc/profile.d/puppet.sh
 fi
 
-# Our puppet is in the runtime directory
-PUPPET_BIN="${PERMANENT_INSTALL_PATH}/bin/puppet"
-export PATH="${PERMANENT_INSTALL_PATH}/bin:/usr/local/bin:$PATH"
+# Export for current session
+export PATH="/opt/puppetlabs/puppet/bin:/usr/local/bin:$PATH"
 
 echo ""
 echo "==================================="
 echo "  Installation Complete!"
 echo "==================================="
 echo ""
-echo "Puppet has been installed to: ${PERMANENT_INSTALL_PATH}"
+echo "Puppet has been installed to: /opt/puppetlabs"
+echo "Custom configuration installed to: ${PERMANENT_INSTALL_PATH}"
+echo ""
 echo "Puppet agent version:"
-
-# Show puppet version
-if [ -f "$PUPPET_BIN" ]; then
-    $PUPPET_BIN --version || echo "Unable to determine version"
-else
-    echo "Error: Puppet binary not found at $PUPPET_BIN"
-fi
+/opt/puppetlabs/puppet/bin/puppet --version || echo "Unable to determine version"
 echo ""
 echo "The temporary directory ${INSTALLER_PATH} can now be safely deleted."
 echo ""

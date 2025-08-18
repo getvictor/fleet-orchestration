@@ -23,9 +23,9 @@ if [ ! -d "${PERMANENT_INSTALL_PATH}" ]; then
     exit 1
 fi
 
-# Use our bundled puppet from the runtime directory
-PUPPET_BIN="${PERMANENT_INSTALL_PATH}/bin/puppet"
-export PATH="${PERMANENT_INSTALL_PATH}/bin:/usr/local/bin:$PATH"
+# Use the real Puppet from puppetlabs installation
+PUPPET_BIN="/opt/puppetlabs/puppet/bin/puppet"
+export PATH="/opt/puppetlabs/puppet/bin:/usr/local/bin:$PATH"
 
 if [ ! -f "$PUPPET_BIN" ]; then
     echo "Error: Puppet not found at $PUPPET_BIN"
@@ -58,7 +58,7 @@ echo "==================================="
 cd "${PERMANENT_INSTALL_PATH}"
 
 # Apply the Puppet manifest
-FACTER_var1=$FLEET_SECRET_VAR1 FACTER_var2=var2_content \
+FACTER_var1=${FLEET_SECRET_VAR1} FACTER_var2=var2_content \
 $PUPPET_BIN apply \
     --modulepath="${PERMANENT_INSTALL_PATH}/modules" \
     --config="${PERMANENT_INSTALL_PATH}/config/puppet.conf" \
