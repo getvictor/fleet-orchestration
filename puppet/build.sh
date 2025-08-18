@@ -7,14 +7,12 @@ OUTPUT_DIR="${SCRIPT_DIR}/output"
 BUILD_DIR="${OUTPUT_DIR}/build"
 PUPPET_VERSION="8"  # Puppet 8 is the latest stable
 
-# Detect architecture
-ARCH="amd64"  # Default to amd64
-if [[ $(uname -m) == "arm64" ]] || [[ $(uname -m) == "aarch64" ]]; then
-    ARCH="arm64"
-fi
+# Target architecture is always AMD64 for production
+ARCH="amd64"
 
 echo "=== Puppet Runtime Builder ==="
-echo "Building for: Ubuntu 24.04 ($ARCH)"
+echo "Building for: Ubuntu 24.04 (AMD64)"
+echo "Note: Building AMD64 package regardless of build machine architecture"
 echo ""
 
 rm -rf "${OUTPUT_DIR}"
@@ -144,7 +142,7 @@ echo "  - ${OUTPUT_DIR}/install.sh"
 echo "  - ${OUTPUT_DIR}/post-install.sh"
 echo "  - ${OUTPUT_DIR}/uninstall.sh"
 echo ""
-echo "To deploy on Ubuntu 24.04 ${ARCH}:"
+echo "To deploy on Ubuntu 24.04 AMD64:"
 echo "  1. Copy all files from ${OUTPUT_DIR}/ to the target machine"
 echo "  2. Extract: tar -xzf puppet-runtime.tar.gz -C /tmp/puppet-install"
 echo "  3. Run: INSTALLER_PATH=/tmp/puppet-install sudo ./install.sh"

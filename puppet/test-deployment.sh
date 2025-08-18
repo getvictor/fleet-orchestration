@@ -56,9 +56,10 @@ if [ ! -f "${OUTPUT_DIR}/puppet-runtime.tar.gz" ]; then
     exit 1
 fi
 
-# Start Ubuntu container
-log "\n${GREEN}Step 1: Starting Ubuntu 24.04 container${NC}"
+# Start Ubuntu container (force AMD64 platform)
+log "\n${GREEN}Step 1: Starting Ubuntu 24.04 AMD64 container${NC}"
 docker run -d \
+    --platform linux/amd64 \
     --name ${CONTAINER_NAME} \
     -p 8889:80 \
     ${IMAGE} \
@@ -180,7 +181,7 @@ log "  Test Complete!"
 log "===================================${NC}"
 log ""
 log "Summary:"
-log "  • Ubuntu 24.04 container created"
+log "  • Ubuntu 24.04 AMD64 container created"
 log "  • Puppet installed from temporary location"
 log "  • Apache installed and verified via Puppet"
 log "  • Temporary directory cleaned up"
