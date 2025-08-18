@@ -76,6 +76,12 @@ jobs:
         name: salt-build-${{ env.BUILD_ID }}
         path: salt/output
 
+    - name: Fix script permissions
+      run: |
+        cd ${{ env.SALT_DIR }}/output
+        chmod +x install.sh post-install.sh uninstall.sh
+        ls -la *.sh
+
     - name: Set up Docker
       run: |
         docker --version

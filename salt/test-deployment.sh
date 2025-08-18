@@ -87,6 +87,9 @@ docker cp ${OUTPUT_DIR}/uninstall.sh ${CONTAINER_NAME}:${TEST_INSTALL_PATH}/ 2>&
 
 log "${GREEN}✓ Files copied successfully${NC}"
 
+# Set execute permissions on scripts (docker cp doesn't preserve permissions)
+docker exec ${CONTAINER_NAME} chmod +x ${TEST_INSTALL_PATH}/install.sh ${TEST_INSTALL_PATH}/post-install.sh ${TEST_INSTALL_PATH}/uninstall.sh 2>&1 | tee -a "$LOG_FILE"
+
 # Run install.sh
 log "\n${GREEN}Step 3: Running install.sh${NC}"
 docker exec -e INSTALLER_PATH=${TEST_INSTALL_PATH} ${CONTAINER_NAME} bash -c "cd ${TEST_INSTALL_PATH} && ./install.sh" 2>&1 | tee -a "$LOG_FILE"
