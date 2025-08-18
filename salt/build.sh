@@ -70,6 +70,11 @@ cp "${SCRIPT_DIR}/scripts/install.sh" "${OUTPUT_DIR}/"
 cp "${SCRIPT_DIR}/scripts/post-install.sh" "${OUTPUT_DIR}/"
 cp "${SCRIPT_DIR}/scripts/uninstall.sh" "${OUTPUT_DIR}/"
 
+# Make scripts executable
+chmod +x "${OUTPUT_DIR}/install.sh"
+chmod +x "${OUTPUT_DIR}/post-install.sh"
+chmod +x "${OUTPUT_DIR}/uninstall.sh"
+
 # Cleanup
 rm -rf "${BUILD_DIR}"
 

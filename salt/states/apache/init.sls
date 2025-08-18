@@ -92,8 +92,6 @@ apache_index_page:
         server_name: {{ grains.get('fqdn', 'localhost') }}
         platform: {{ grains.get('os', 'Unknown') }}
         platform_version: {{ grains.get('osrelease', 'Unknown') }}
-        var1: {{ salt['environ.get']('FLEET_SECRET_VAR1', 'not_set') }}
-        var2: {{ pillar.get('apache:var2', 'not_set') }}
 
 # Enable and start Apache service
 apache_service:
@@ -119,9 +117,9 @@ verify_apache_running:
           service apache2 start 2>&1 || \
           /usr/sbin/apache2ctl start 2>&1 || \
           echo "WARNING: Could not start Apache automatically"
-          
+
           sleep 2
-          
+
           if pgrep -f apache2 >/dev/null 2>&1; then
             echo "✓ Apache is now running"
           else

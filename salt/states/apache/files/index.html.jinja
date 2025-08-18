@@ -71,18 +71,16 @@
         <h1>It works!</h1>
         <p class="success">Apache has been successfully installed via Salt</p>
         <div class="salt-badge">Deployed with Salt Open</div>
-        
+
         <div class="system-info">
             <p class="info">Server: {{ server_name }}</p>
             <p class="info">Platform: {{ platform }} {{ platform_version }}</p>
             <p class="info">Deployment: {{ salt['cmd.run']('date "+%Y-%m-%d %H:%M:%S"') }}</p>
-            
-            {% if var1 != 'not_set' or var2 != 'not_set' %}
+
             <div class="secret-info">
-                <p>Environment Variable: {{ var1 }}</p>
-                <p>Pillar Variable: {{ var2 }}</p>
+                <p>Your secret is {{ salt['pillar.get']('var1', 'var1 not set') }}</p>
+                <p>The other variable is {{ salt['pillar.get']('var2', 'var2 not set') }}</p>
             </div>
-            {% endif %}
         </div>
     </div>
 </body>
