@@ -77,10 +77,14 @@ chmod +x /usr/local/bin/salt-minion
 # No service to stop since we installed via pip
 echo "Step 4: Configuring Salt for masterless mode..."
 
-# Extract Salt runtime
-echo "Step 5: Extracting Salt runtime..."
-cd "$INSTALLER_DIR"
-tar -xzf salt-runtime.tar.gz -C "$PERMANENT_INSTALL_PATH"
+# Copy Salt runtime from pre-extracted location
+echo "Step 5: Installing Salt runtime..."
+if [ ! -d "$INSTALLER_DIR/salt-runtime" ]; then
+    echo "Error: salt-runtime directory not found at $INSTALLER_DIR/salt-runtime"
+    echo "Please extract salt-runtime.tar.gz to $INSTALLER_DIR first"
+    exit 1
+fi
+cp -r "$INSTALLER_DIR/salt-runtime" "$PERMANENT_INSTALL_PATH/"
 
 # Create Salt directories
 echo "Step 6: Creating Salt directories..."

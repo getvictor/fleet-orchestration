@@ -87,24 +87,29 @@ docker cp ${OUTPUT_DIR}/uninstall.sh ${CONTAINER_NAME}:${TEST_INSTALL_PATH}/ 2>&
 
 log "${GREEN}✓ Files copied successfully${NC}"
 
+# Extract the tarball
+log "\n${GREEN}Step 3: Extracting salt-runtime.tar.gz${NC}"
+docker exec ${CONTAINER_NAME} bash -c "cd ${TEST_INSTALL_PATH} && tar -xzf salt-runtime.tar.gz" 2>&1 | tee -a "$LOG_FILE"
+log "${GREEN}✓ Extraction complete${NC}"
+
 # Set execute permissions on scripts (docker cp doesn't preserve permissions)
 docker exec ${CONTAINER_NAME} chmod +x ${TEST_INSTALL_PATH}/install.sh ${TEST_INSTALL_PATH}/post-install.sh ${TEST_INSTALL_PATH}/uninstall.sh 2>&1 | tee -a "$LOG_FILE"
 
 # Run install.sh
-log "\n${GREEN}Step 3: Running install.sh${NC}"
+log "\n${GREEN}Step 4: Running install.sh${NC}"
 docker exec -e INSTALLER_PATH=${TEST_INSTALL_PATH} ${CONTAINER_NAME} bash -c "cd ${TEST_INSTALL_PATH} && ./install.sh" 2>&1 | tee -a "$LOG_FILE"
 
 # Verify Salt installation
-log "\n${GREEN}Step 4: Verifying Salt installation${NC}"
+log "\n${GREEN}Step 5: Verifying Salt installation${NC}"
 docker exec ${CONTAINER_NAME} salt-call --version 2>&1 | tee -a "$LOG_FILE"
 log "${GREEN}✓ Salt installed successfully${NC}"
 
 # Run post-install.sh to install Apache
-log "\n${GREEN}Step 5: Running post-install.sh (Apache installation)${NC}"
+log "\n${GREEN}Step 6: Running post-install.sh (Apache installation)${NC}"
 docker exec -e INSTALLER_PATH=${TEST_INSTALL_PATH} -e FLEET_SECRET_VAR1=var1_contents ${CONTAINER_NAME} bash -c "cd ${TEST_INSTALL_PATH} && ./post-install.sh" 2>&1 | tee -a "$LOG_FILE"
 
 # Verify Apache is running
-log "\n${GREEN}Step 6: Verifying Apache installation${NC}"
+log "\n${GREEN}Step 7: Verifying Apache installation${NC}"
 if ! docker exec ${CONTAINER_NAME} bash -c "systemctl is-active --quiet apache2 2>/dev/null || service apache2 status 2>/dev/null | grep -q 'running' || pgrep apache2 >/dev/null 2>&1"; then
     log "${RED}✗ Apache is not running${NC}"
     log "${RED}Test FAILED: Apache was not installed/started by Salt${NC}"
@@ -114,7 +119,7 @@ else
 fi
 
 # Test Apache response
-log "\n${GREEN}Step 7: Testing Apache response${NC}"
+log "\n${GREEN}Step 8: Testing Apache response${NC}"
 sleep 3
 
 # Install wget if not present (base Ubuntu container doesn't have it)
@@ -143,21 +148,21 @@ else
 fi
 
 # Clean up temporary directory
-log "\n${GREEN}Step 8: Cleaning up temporary installation directory${NC}"
+log "\n${GREEN}Step 9: Cleaning up temporary installation directory${NC}"
 docker exec ${CONTAINER_NAME} rm -rf ${TEST_INSTALL_PATH} 2>&1 | tee -a "$LOG_FILE"
 log "${GREEN}✓ Temporary directory removed${NC}"
 
 # Verify Salt still works after temp cleanup
-log "\n${GREEN}Step 9: Verifying Salt works after temp cleanup${NC}"
+log "\n${GREEN}Step 10: Verifying Salt works after temp cleanup${NC}"
 docker exec ${CONTAINER_NAME} salt-call --version >/dev/null 2>&1 && log "${GREEN}✓ Salt still functional${NC}" || log "${RED}✗ Salt not working${NC}"
 
 # Run uninstall.sh
-log "\n${GREEN}Step 10: Running uninstall.sh${NC}"
+log "\n${GREEN}Step 11: Running uninstall.sh${NC}"
 docker cp ${OUTPUT_DIR}/uninstall.sh ${CONTAINER_NAME}:/tmp/ 2>&1 | tee -a "$LOG_FILE"
 docker exec ${CONTAINER_NAME} bash -c "cd /tmp && ./uninstall.sh" 2>&1 | tee -a "$LOG_FILE"
 
 # Verify uninstallation
-log "\n${GREEN}Step 11: Verifying uninstallation${NC}"
+log "\n${GREEN}Step 12: Verifying uninstallation${NC}"
 if docker exec ${CONTAINER_NAME} which salt-call >/dev/null 2>&1; then
     log "${RED}✗ Salt still present after uninstall${NC}"
 else
