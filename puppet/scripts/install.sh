@@ -72,28 +72,37 @@ if [ ! -f "$PUPPET_RELEASE_DEB" ]; then
 fi
 
 echo ""
+
+# Check if there's an existing Puppet installation
+if dpkg -l | grep -q "^ii.*puppet-agent"; then
+    echo "Existing Puppet installation detected. It will be upgraded."
+    EXISTING_VERSION=$(dpkg -l | grep "^ii.*puppet-agent" | awk '{print $3}')
+    echo "Current version: $EXISTING_VERSION"
+fi
+
 echo "Installing Puppet from bundled packages..."
 
 # Install the Puppet release package first (sets up repository configuration)
 echo "Installing Puppet release configuration..."
-dpkg -i "$PUPPET_RELEASE_DEB" || {
+DEBIAN_FRONTEND=noninteractive dpkg -i --force-confnew "$PUPPET_RELEASE_DEB" || {
     echo "Error: Failed to install Puppet release package"
     exit 1
 }
 
 # Install the Puppet agent package
 echo "Installing Puppet agent..."
-dpkg -i "$PUPPET_AGENT_DEB" 2>/dev/null || {
+# Use --force-confnew to automatically use new config files
+DEBIAN_FRONTEND=noninteractive dpkg -i --force-confnew "$PUPPET_AGENT_DEB" 2>/dev/null || {
     # If dpkg fails due to dependencies, try to fix them
     echo "Fixing dependencies..."
     apt-get update
-    apt-get install -f -y || {
+    DEBIAN_FRONTEND=noninteractive apt-get install -f -y -o Dpkg::Options::="--force-confnew" || {
         echo "Error: Failed to install Puppet agent dependencies"
         exit 1
     }
     
-    # Try installing again
-    dpkg -i "$PUPPET_AGENT_DEB" || {
+    # Try installing again with force options
+    DEBIAN_FRONTEND=noninteractive dpkg -i --force-confnew "$PUPPET_AGENT_DEB" || {
         echo "Error: Failed to install Puppet agent package"
         exit 1
     }
