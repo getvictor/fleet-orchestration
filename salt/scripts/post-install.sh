@@ -46,7 +46,36 @@ if [ ! -z "$FLEET_SECRET_VAR1" ]; then
     echo "Using FLEET_SECRET_VAR1 from environment"
 fi
 
-salt-call --local --config-dir="${SALT_RUNTIME}/config" state.apply pillar='{"var1":"${FLEET_SECRET_VAR1}", "var2":"var2_content"}'
+# Capture salt-call output
+SALT_OUTPUT=$(mktemp)
+if salt-call --local --config-dir="${SALT_RUNTIME}/config" state.apply pillar='{"var1":"${FLEET_SECRET_VAR1}", "var2":"var2_content"}' 2>&1 | tee "$SALT_OUTPUT"; then
+    echo "Salt states applied successfully"
+else
+    echo ""
+    echo "=== SALT STATE APPLICATION FAILED ==="
+    echo "Extracting relevant debug information..."
+    
+    # Extract only the debug_apache_failure output if it exists
+    if grep -q "=== APACHE DEBUG INFO ===" "$SALT_OUTPUT"; then
+        echo ""
+        echo "Apache Debug Information:"
+        sed -n '/=== APACHE DEBUG INFO ===/,/=== END APACHE DEBUG INFO ===/p' "$SALT_OUTPUT"
+    fi
+    
+    # Show any error messages
+    echo ""
+    echo "Error Summary:"
+    grep -E "(ERROR|Failed|error:|failed:|No MPM loaded|Permission denied|not found)" "$SALT_OUTPUT" | head -20
+    
+    # Show failed states summary
+    echo ""
+    grep -A 2 "Failed:" "$SALT_OUTPUT" | head -10
+    
+    rm -f "$SALT_OUTPUT"
+    echo "=== END OF DEBUG OUTPUT ==="
+    exit 1
+fi
+rm -f "$SALT_OUTPUT"
 
 # Check if Apache is running
 echo ""
