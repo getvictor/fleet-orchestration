@@ -1,0 +1,23 @@
+# Salt minion configuration for masterless mode
+file_client: local
+master_type: disable
+
+# Define local file roots
+file_roots:
+  base:
+    - /srv/salt/states
+
+# Define local pillar roots
+pillar_roots:
+  base:
+    - /srv/salt/pillar
+
+# Logging configuration
+log_level: info
+log_file: /var/log/salt/minion
+
+# Cache directory
+cachedir: /var/cache/salt/minion
+
+# Disable multiprocessing for masterless mode (more stable)
+multiprocessing: False

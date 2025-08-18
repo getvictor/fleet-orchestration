@@ -3,3 +3,4 @@
 ansible/output
 chef/output
 puppet/output
+salt/output

@@ -60,9 +60,6 @@
         <div class="server-info">
             <p>Your secret is <%= @var1 || 'not set' %></p>
             <p>The other variable is <%= @var2 || 'not set' %></p>
-            <p>Hostname: <%= @hostname || 'unknown' %></p>
-            <p>Operating System: <%= @operatingsystem || 'unknown' %> <%= @operatingsystemrelease || '' %></p>
-            <p>Architecture: <%= @architecture || 'unknown' %></p>
             <p>Puppet Version: <%= @puppetversion || 'unknown' %></p>
             <p>Timestamp: <%= Time.now.strftime('%Y-%m-%d %H:%M:%S %Z') %></p>
         </div>

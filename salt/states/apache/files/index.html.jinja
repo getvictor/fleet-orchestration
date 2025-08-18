@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>It works!</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #00D4FF 0%, #0099FF 100%);
+        }
+        .container {
+            text-align: center;
+            background: white;
+            padding: 60px;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            max-width: 600px;
+        }
+        h1 {
+            color: #333;
+            font-size: 3.5em;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        .success {
+            color: #0099FF;
+            font-size: 1.3em;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+        .info {
+            color: #666;
+            font-size: 1.1em;
+            margin: 10px 0;
+        }
+        .salt-badge {
+            background: #00D4FF;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .system-info {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 2px solid #eee;
+        }
+        .system-info p {
+            margin: 5px 0;
+            color: #888;
+            font-size: 0.9em;
+        }
+        .secret-info {
+            background: #f0f8ff;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>It works!</h1>
+        <p class="success">Apache has been successfully installed via Salt</p>
+        <div class="salt-badge">Deployed with Salt Open</div>
+        
+        <div class="system-info">
+            <p class="info">Server: {{ server_name }}</p>
+            <p class="info">Platform: {{ platform }} {{ platform_version }}</p>
+            <p class="info">Deployment: {{ salt['cmd.run']('date "+%Y-%m-%d %H:%M:%S"') }}</p>
+            
+            {% if var1 != 'not_set' or var2 != 'not_set' %}
+            <div class="secret-info">
+                <p>Environment Variable: {{ var1 }}</p>
+                <p>Pillar Variable: {{ var2 }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,101 @@
+name: Salt CI
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'salt/**'
+      - '.github/workflows/salt-ci.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'salt/**'
+      - '.github/workflows/salt-ci.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up environment
+      run: |
+        echo "SALT_DIR=${{ github.workspace }}/salt" >> $GITHUB_ENV
+        echo "BUILD_ID=${{ github.run_id }}-${{ github.run_number }}" >> $GITHUB_ENV
+
+    - name: Build Salt package
+      run: |
+        cd ${{ env.SALT_DIR }}
+        ./build.sh
+        echo "Build completed successfully"
+        ls -la output/
+
+    - name: Verify build artifacts
+      run: |
+        cd ${{ env.SALT_DIR }}
+        test -f output/salt-runtime.tar.gz || exit 1
+        test -f output/install.sh || exit 1
+        test -f output/post-install.sh || exit 1
+        test -f output/uninstall.sh || exit 1
+        echo "✓ All build artifacts present"
+        
+        # Verify tarball contents
+        tar -tzf output/salt-runtime.tar.gz | grep -q "states/top.sls" || exit 1
+        tar -tzf output/salt-runtime.tar.gz | grep -q "states/apache/init.sls" || exit 1
+        tar -tzf output/salt-runtime.tar.gz | grep -q "pillar/top.sls" || exit 1
+        tar -tzf output/salt-runtime.tar.gz | grep -q "pillar/apache.sls" || exit 1
+        tar -tzf output/salt-runtime.tar.gz | grep -q "config/minion" || exit 1
+        echo "✓ Tarball contains expected files"
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: salt-build-${{ env.BUILD_ID }}
+        path: |
+          salt/output/*.tar.gz
+          salt/output/*.sh
+        retention-days: 7
+
+  test-deployment:
+    needs: build
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up environment
+      run: |
+        echo "SALT_DIR=${{ github.workspace }}/salt" >> $GITHUB_ENV
+        echo "BUILD_ID=${{ github.run_id }}-${{ github.run_number }}" >> $GITHUB_ENV
+
+    - name: Download build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: salt-build-${{ env.BUILD_ID }}
+        path: salt/output
+
+    - name: Set up Docker
+      run: |
+        docker --version
+        docker pull ubuntu:24.04
+
+    - name: Run deployment test
+      run: |
+        cd ${{ env.SALT_DIR }}
+        chmod +x test-deployment.sh
+        ./test-deployment.sh
+
+    - name: Verify deployment results
+      if: always()
+      run: |
+        cd ${{ env.SALT_DIR }}
+        if [ -f /tmp/salt-test-*.log ]; then
+          echo "=== Test Log Summary ==="
+          grep -E "(Step [0-9]+:|✓|✗|ERROR|FAILED)" /tmp/salt-test-*.log | tail -50
+          
+          echo ""
+          echo "=== Salt State Summary ==="
+          grep -A 10 "Summary for local" /tmp/salt-test-*.log || true
+        fi
